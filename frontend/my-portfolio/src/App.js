@@ -85,6 +85,8 @@ function App() {
 
   return (
     <div className="App">
+       {/* Smoke Background */}
+       <div id="smoke-background"></div> {/* Add this div for the smoke background */}
       {/* Intro Section */}
       <section className="intro">
         <div className="intro-content">
