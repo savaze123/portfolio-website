@@ -6,31 +6,39 @@ import worriedGif from './images/worried.gif'; // Make sure this path is correct
 
 // BitcoinTracker Component
 function BitcoinTracker() {
-  const [bitcoinPrice, setBitcoinPrice] = useState(null);
-  const [previousPrice, setPreviousPrice] = useState(null);
-  const [priceStatus, setPriceStatus] = useState('neutral'); // Initialize with 'neutral'
+  const [bitcoinData, setBitcoinData] = useState({
+    price: null,
+    previousPrice: null,
+    status: 'neutral'
+  });
 
   useEffect(() => {
     const fetchBitcoinPrice = async () => {
       try {
         const response = await axios.get('https://api.coingecko.com/api/v3/simple/price?ids=bitcoin&vs_currencies=usd');
+        console.log('Full API Response:', response.data);
+    
+        // Correctly access the Bitcoin price from the response
         const currentPrice = response.data.bitcoin.usd;
 
-        // Update price status
-        if (previousPrice !== null) {
-          if (currentPrice > previousPrice) {
-            setPriceStatus('up');
-          } else if (currentPrice < previousPrice) {
-            setPriceStatus('down');
-          }
-        }
-
-        setPreviousPrice(currentPrice);
-        setBitcoinPrice(parseFloat(currentPrice.toFixed(2)));
+    
+        setBitcoinData(prevData => ({
+          previousPrice: prevData.price,
+          price: currentPrice,
+          status: prevData.price !== null
+            ? currentPrice > prevData.price
+              ? 'up'
+              : currentPrice < prevData.price
+              ? 'down'
+              : prevData.status
+            : 'neutral'
+        }));
       } catch (error) {
-        console.error('Error fetching Bitcoin price:', error);
+        console.error('Error fetching Bitcoin price:', error.message);
+        console.error('Detailed Error:', error);
       }
-    };
+    };    
+    
 
     fetchBitcoinPrice(); // Initial fetch
 
@@ -40,17 +48,17 @@ function BitcoinTracker() {
     }, 30000);
 
     return () => clearInterval(interval); // Clean up interval on component unmount
-  }, [previousPrice]); // Add previousPrice to the dependency array
+  }, []); // Only run once when component mounts
 
   return (
     <div className="bitcoin-tracker" style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
       <div style={{ flex: 1 }}>
-        <p>Current Bitcoin Price: {bitcoinPrice ? `$${bitcoinPrice.toFixed(2)}` : 'Loading...'}</p>
+        <p>Current Bitcoin Price: {bitcoinData.price ? `$${bitcoinData.price.toFixed(2)}` : 'Loading...'}</p>
       </div>
       <div className="status-gif" style={{ marginLeft: '20px' }}>
-        {priceStatus === 'neutral' && <p>Waiting for price update...</p>}
-        {priceStatus === 'up' && <img src={cheeringGif} alt="Bitcoin is up!" />}
-        {priceStatus === 'down' && <img src={worriedGif} alt="Bitcoin is down!" />}
+        {bitcoinData.status === 'neutral' && <p>Waiting for price update...</p>}
+        {bitcoinData.status === 'up' && <img src={cheeringGif} alt="Bitcoin is up!" />}
+        {bitcoinData.status === 'down' && <img src={worriedGif} alt="Bitcoin is down!" />}
       </div>
     </div>
   );
