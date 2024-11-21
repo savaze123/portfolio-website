@@ -1,17 +1,14 @@
-from flask import Flask
+from flask import Flask, jsonify, send_from_directory
 from flask_cors import CORS
+import os
 
+app = Flask(__name__, static_folder='build')
+CORS(app, resources={r"/*": {"origins": "*"}})  # Adjust CORS as needed
 
-# Your existing routes here...
-
-from flask import Flask, jsonify
-import pdfplumber
-
-app = Flask(__name__)
-CORS(app)
-# Parse Resume PDF to Extract Data
-def parse_resume():
-    data = {
+# API route
+@app.route('/api/resume', methods=['GET'])
+def get_resume():
+    resume_data = {
         'name': 'Savaze Khattak',
         'email': 'savazework@gmail.com',
         'phone': '+(929)-421-6655',
@@ -51,12 +48,16 @@ def parse_resume():
             }
         ]
     }
-    return data
-
-@app.route('/api/resume', methods=['GET'])
-def get_resume():
-    resume_data = parse_resume()
     return jsonify(resume_data)
 
+# Serve React build files
+@app.route('/', defaults={'path': ''})
+@app.route('/<path:path>')
+def serve_react(path):
+    if path != "" and os.path.exists(os.path.join(app.static_folder, path)):
+        return send_from_directory(app.static_folder, path)
+    else:
+        return send_from_directory(app.static_folder, 'index.html')
+
 if __name__ == '__main__':
-    app.run(debug=True)
+    app.run(debug=True, port=5000)
