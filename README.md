@@ -34,7 +34,7 @@ Navigate to the backend folder and set up a virtual environment. Install Flask d
 
 Navigate to the frontend folder and run npm install to set up the React environment.
 
-Start both the backend (flask run) and frontend (npm start).
+Start the backend (python app.py).
 
 
 Welcome to my realm!
