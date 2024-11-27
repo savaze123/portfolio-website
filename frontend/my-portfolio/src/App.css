@@ -1,3 +1,6 @@
+/* Import Orbitron Font */
+@import url('https://fonts.googleapis.com/css2?family=Orbitron:wght@400;700&display=swap');
+
 /* Global Styles */
 body {
   font-family: 'Roboto', Arial, sans-serif;
@@ -19,30 +22,43 @@ body {
   padding: 0 20px;
 }
 
-/* Neon Name Styling */
+/* Neon Name Styling with Pink and Blue Outline */
 .neon-name {
-  font-family: 'Roboto', Arial, sans-serif; /* Softer, professional font */
-  font-size: 5rem; /* Larger size for the name */
-  color: #9d00ff; /* Purple color for a cyberpunk look */
-  text-shadow: 0 0 5px #9d00ff, 0 0 15px #ff00ff, 0 0 25px #ff33cc;
-  -webkit-text-stroke: 2px lightgray; /* Light gray outline for the name */
-  animation: glow-pulse 3s infinite alternate;
+  font-family: 'Orbitron', Arial, sans-serif; /* Futuristic rounded font */
+  font-size: 5.7rem; /* Larger size for emphasis */
+  color: #a71984; /* Neon pink */
+  letter-spacing: 4px; /* Slight spacing for signage effect */
+  text-shadow: 
+    0 0 5px #ff33cc, /* Inner pink glow */
+    0 0 10px #ff33cc, /* Slightly larger pink glow */
+    0 0 15px #89CFF0, /* Baby blue outer outline */
+    0 0 20px #89CFF0; /* Faint baby blue aura */
+  animation: glow-pulse 3s infinite alternate; /* Subtle pulsing animation */
 }
 
+/* Glow Pulse Animation */
 @keyframes glow-pulse {
   0%, 100% {
-    text-shadow: 0 0 5px #9d00ff, 0 0 15px #ff00ff, 0 0 25px #ff33cc;
+    text-shadow: 
+      0 0 5px #ff33cc, 
+      0 0 10px #ff33cc, 
+      0 0 15px #89CFF0, 
+      0 0 20px #89CFF0;
   }
   50% {
-    text-shadow: 0 0 10px #9d00ff, 0 0 20px #ff00ff, 0 0 30px #ff33cc;
+    text-shadow: 
+      0 0 8px #ff33cc, 
+      0 0 15px #ff33cc, 
+      0 0 20px #89CFF0, 
+      0 0 25px #89CFF0;
   }
 }
 
 /* Neon Abstract Styling */
 .neon-abstract {
   font-family: 'Roboto', Arial, sans-serif; /* Softer, professional font */
-  font-size: 1.5rem;
-  max-width: 800px;
+  font-size: 1.2rem;
+  max-width: 900px;
   margin-top: 20px;
   color: #00bfff; /* Neon blue */
   text-shadow: 0 0 5px #00bfff, 0 0 15px #0088ff, 0 0 20px #0055ff;
@@ -154,29 +170,50 @@ section {
   text-shadow: 0 0 5px #ff33cc, 0 0 10px #ff66ff;
 }
 
-/* Link Glow Effect */
-a {
-  color: #00ffff;
-  text-decoration: none;
-  transition: color 0.3s ease-in-out, text-shadow 0.3s ease-in-out;
+/* Neon Sign Section */
+.neon-wrap {
+  display: flex;
+  flex-direction: column; /* Stacking signs vertically */
+  align-items: center;
+  gap: 30px; /* Space between signs */
+  padding: 50px;
+  background: linear-gradient(135deg, #0d0d0d, #1a1a1a); /* Dark gradient background */
+  height: 100vh;
 }
 
-a:hover {
-  color: #ff33cc;
-  text-shadow: 0 0 8px #ff33cc, 0 0 16px #ff33cc;
-}
-
-/* Header Styling */
-.App-header {
-  background: linear-gradient(135deg, #333333, #1a1a1a);
-  padding: 30px 20px;
-  color: #ffffff;
+.neon-sign {
+  padding: 20px 40px;
+  background-color: #262626;
   border-radius: 10px;
-  box-shadow: 0 0 10px #ff33cc;
-  transform: perspective(1000px) rotateX(5deg);
-  transition: transform 0.3s ease;
+  box-shadow: 0 0 20px #000; /* Subtle shadow for realism */
 }
 
-.App-header:hover {
-  transform: perspective(1000px) rotateX(0deg) scale(1.05);
+.neon-text {
+  font-family: 'Orbitron', Arial, sans-serif;
+  font-size: 6rem;
+  color: #ff99cc; /* Base pink */
+  text-shadow: 
+    0 0 5px #A4DDED, /* Pink inner glow */
+    0 0 10px #A4DDED, /* Peach middle glow */
+    0 0 20px #99ccff; /* Blue outer glow */;
+  animation: flicker 3s infinite alternate;
+}
+
+@keyframes flicker {
+  0%, 100% {
+    opacity: 1;
+    text-shadow: 
+      0 0 10px #ff33cc,
+      0 0 20px #ff66ff,
+      0 0 30px #ff99ff,
+      0 0 40px #ff66ff;
+  }
+  50% {
+    opacity: 0.8;
+    text-shadow: 
+      0 0 2px #ff33cc,
+      0 0 8px #ff66ff,
+      0 0 15px #ff99ff,
+      0 0 20px #ff66ff;
+  }
 }
