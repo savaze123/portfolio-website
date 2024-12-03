@@ -1,0 +1,59 @@
+.servers-page {
+  text-align: center;
+  padding: 20px;
+}
+
+.servers-list {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: 20px;
+  margin-top: 20px;
+}
+
+.server-card {
+  text-align: center;
+  padding: 15px;
+  background: #1a1a1a;
+  border-radius: 10px;
+  box-shadow: 0 0 10px #ff33cc;
+  width: 150px;
+  transition: transform 0.3s ease, box-shadow 0.3s ease;
+}
+
+.server-card:hover {
+  transform: translateY(-10px);
+  box-shadow: 0 0 20px #ff33cc;
+}
+
+.server-icon {
+  width: 100px;
+  height: 100px;
+  border-radius: 50%;
+  margin-bottom: 10px;
+}
+
+.server-name {
+  font-size: 1rem;
+  color: #00ffcc;
+}
+
+.error-message {
+  color: red;
+  font-weight: bold;
+}
+
+.error-container button {
+  margin-top: 10px;
+  padding: 10px 20px;
+  background-color: #ff33cc;
+  color: white;
+  border: none;
+  border-radius: 5px;
+  cursor: pointer;
+  transition: background-color 0.3s ease;
+}
+
+.error-container button:hover {
+  background-color: #ff66ff;
+}
