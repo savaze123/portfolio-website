@@ -1,219 +1,796 @@
-/* Import Orbitron Font */
-@import url('https://fonts.googleapis.com/css2?family=Orbitron:wght@400;700&display=swap');
+/* ============================================================
+   MATRIX HUD THEME — App.css
+   Inspired by The Matrix Resurrections UI aesthetic
+   ============================================================ */
 
-/* Global Styles */
+@import url('https://fonts.googleapis.com/css2?family=Orbitron:wght@400;600;700&family=Share+Tech+Mono&display=swap');
+
+/* ── CSS Variables ── */
+:root {
+  --green:        #00ff41;
+  --green-dim:    #00cc33;
+  --green-glow:   rgba(0, 255, 65, 0.4);
+  --green-subtle: rgba(0, 255, 65, 0.08);
+  --cyan:         #00e5ff;
+  --cyan-dim:     #0099bb;
+  --pink:         #ff33cc;
+  --pink-dim:     #a71984;
+  --black:        #000000;
+  --panel-bg:     rgba(0, 8, 0, 0.82);
+  --panel-border: #00ff41;
+  --text-main:    #00ff41;
+  --text-dim:     #008822;
+  --text-data:    #00e5ff;
+  --font-hud:     'Orbitron', monospace;
+  --font-mono:    'Share Tech Mono', 'Courier New', monospace;
+}
+
+/* ── Reset & Base ── */
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+html { scroll-behavior: smooth; }
+
 body {
-  font-family: 'Roboto', Arial, sans-serif;
-  background-color: #0d0d0d; /* Dark background to fit the cyberpunk theme */
-  color: #e0e0e0;
-  margin: 0;
-  padding: 0;
+  font-family: var(--font-mono);
+  background: #000;
+  color: var(--text-main);
+  min-height: 100vh;
   overflow-x: hidden;
+  cursor: crosshair;
 }
 
-/* Intro Section */
-.intro {
-  height: 100vh;
+/* ── Matrix Canvas Background ── */
+#matrix {
+  position: fixed;
+  top: 0; left: 0;
+  width: 100%; height: 100%;
+  z-index: 0;
+  pointer-events: none;
+}
+
+/* ── Scanline overlay ── */
+body::after {
+  content: '';
+  position: fixed;
+  inset: 0;
+  z-index: 1;
+  pointer-events: none;
+  background: repeating-linear-gradient(
+    0deg,
+    transparent,
+    transparent 3px,
+    rgba(0, 255, 65, 0.025) 3px,
+    rgba(0, 255, 65, 0.025) 4px
+  );
+}
+
+/* ── Page wrapper (sits above canvas) ── */
+.site-wrapper {
+  position: relative;
+  z-index: 2;
+}
+
+/* ============================================================
+   HUD PANEL — base component used everywhere
+   ============================================================ */
+.hud-panel {
+  background: var(--panel-bg);
+  border: 1px solid var(--panel-border);
+  box-shadow:
+    0 0 0 1px rgba(0,255,65,0.1) inset,
+    0 0 20px var(--green-glow),
+    0 0 60px rgba(0,255,65,0.08);
+  position: relative;
+  backdrop-filter: blur(4px);
+}
+
+/* Corner brackets */
+.hud-panel::before,
+.hud-panel::after {
+  content: '';
+  position: absolute;
+  width: 14px; height: 14px;
+  border-color: var(--green);
+  border-style: solid;
+}
+.hud-panel::before { top: -1px; left: -1px; border-width: 2px 0 0 2px; }
+.hud-panel::after  { bottom: -1px; right: -1px; border-width: 0 2px 2px 0; }
+
+/* Panel label tag */
+.hud-label {
+  font-family: var(--font-hud);
+  font-size: 0.6rem;
+  letter-spacing: 0.25em;
+  color: var(--green-dim);
+  text-transform: uppercase;
+  padding: 2px 10px;
+  background: rgba(0,255,65,0.07);
+  border-bottom: 1px solid rgba(0,255,65,0.2);
+  border-right: 1px solid rgba(0,255,65,0.2);
+  position: absolute;
+  top: -1px; left: -1px;
+}
+
+/* ============================================================
+   NAVIGATION
+   ============================================================ */
+.nav {
+  position: fixed;
+  top: 0; left: 0; right: 0;
+  z-index: 100;
   display: flex;
-  justify-content: center;
   align-items: center;
-  background: linear-gradient(135deg, #0d0d0d);
+  justify-content: space-between;
+  padding: 12px 40px;
+  background: rgba(0,0,0,0.9);
+  border-bottom: 1px solid rgba(0,255,65,0.3);
+  box-shadow: 0 0 30px rgba(0,255,65,0.1);
+}
+
+.nav-logo {
+  font-family: var(--font-hud);
+  font-size: 1rem;
+  font-weight: 700;
+  color: var(--green);
+  letter-spacing: 0.3em;
+  text-transform: uppercase;
+  text-decoration: none;
+  text-shadow: 0 0 10px var(--green), 0 0 20px var(--green-dim);
+}
+
+.nav-links {
+  display: flex;
+  gap: 30px;
+  list-style: none;
+}
+
+.nav-links a {
+  font-family: var(--font-hud);
+  font-size: 0.65rem;
+  letter-spacing: 0.2em;
+  color: var(--green-dim);
+  text-decoration: none;
+  text-transform: uppercase;
+  transition: color 0.2s, text-shadow 0.2s;
+  position: relative;
+  padding-bottom: 4px;
+}
+
+.nav-links a::after {
+  content: '';
+  position: absolute;
+  bottom: 0; left: 0; right: 0;
+  height: 1px;
+  background: var(--green);
+  transform: scaleX(0);
+  transition: transform 0.3s ease;
+}
+
+.nav-links a:hover {
+  color: var(--green);
+  text-shadow: 0 0 8px var(--green);
+}
+
+.nav-links a:hover::after { transform: scaleX(1); }
+
+/* ============================================================
+   HERO / INTRO SECTION
+   ============================================================ */
+.intro {
+  min-height: 100vh;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 100px 40px 60px;
   text-align: center;
-  padding: 0 20px;
+  position: relative;
 }
 
-/* Neon Name Styling with Pink and Blue Outline */
-.neon-name {
-  font-family: 'Orbitron', Arial, sans-serif; /* Futuristic rounded font */
-  font-size: 5.7rem; /* Larger size for emphasis */
-  color: #a71984; /* Neon pink */
-  letter-spacing: 4px; /* Slight spacing for signage effect */
-  text-shadow: 
-    0 0 5px #ff33cc, /* Inner pink glow */
-    0 0 10px #ff33cc, /* Slightly larger pink glow */
-    0 0 15px #89CFF0, /* Baby blue outer outline */
-    0 0 20px #89CFF0; /* Faint baby blue aura */
-  animation: glow-pulse 3s infinite alternate; /* Subtle pulsing animation */
-}
-
-/* Glow Pulse Animation */
-@keyframes glow-pulse {
-  0%, 100% {
-    text-shadow: 
-      0 0 5px #ff33cc, 
-      0 0 10px #ff33cc, 
-      0 0 15px #89CFF0, 
-      0 0 20px #89CFF0;
-  }
-  50% {
-    text-shadow: 
-      0 0 8px #ff33cc, 
-      0 0 15px #ff33cc, 
-      0 0 20px #89CFF0, 
-      0 0 25px #89CFF0;
-  }
-}
-
-/* Neon Abstract Styling */
-.neon-abstract {
-  font-family: 'Roboto', Arial, sans-serif; /* Softer, professional font */
-  font-size: 1.2rem;
+.intro-inner {
   max-width: 900px;
-  margin-top: 20px;
-  color: #00bfff; /* Neon blue */
-  text-shadow: 0 0 5px #00bfff, 0 0 15px #0088ff, 0 0 20px #0055ff;
+}
+
+/* Status bar above name */
+.status-bar {
+  font-size: 0.65rem;
+  letter-spacing: 0.3em;
+  color: var(--text-dim);
+  margin-bottom: 20px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 16px;
+}
+
+.status-bar::before,
+.status-bar::after {
+  content: '';
+  display: block;
+  width: 40px; height: 1px;
+  background: linear-gradient(90deg, transparent, var(--green-dim));
+}
+.status-bar::after { background: linear-gradient(90deg, var(--green-dim), transparent); }
+
+.status-dot {
+  display: inline-block;
+  width: 6px; height: 6px;
+  border-radius: 50%;
+  background: var(--green);
+  box-shadow: 0 0 6px var(--green);
+  animation: blink 1.4s infinite;
+  margin-right: 6px;
+}
+
+@keyframes blink { 0%,100%{opacity:1} 50%{opacity:0.2} }
+
+/* Neon Name */
+.neon-name {
+  font-family: var(--font-hud);
+  font-size: clamp(2.5rem, 7vw, 5.5rem);
+  font-weight: 700;
+  color: var(--pink-dim);
+  letter-spacing: 0.08em;
+  line-height: 1.1;
+  text-transform: uppercase;
+  text-shadow:
+    0 0 5px #ff33cc,
+    0 0 15px #ff33cc,
+    0 0 30px #89CFF0,
+    0 0 50px #89CFF0;
+  animation: glow-pulse 3s infinite alternate;
+}
+
+@keyframes glow-pulse {
+  0%,100% { text-shadow: 0 0 5px #ff33cc, 0 0 15px #ff33cc, 0 0 30px #89CFF0, 0 0 50px #89CFF0; }
+  50%      { text-shadow: 0 0 10px #ff33cc, 0 0 25px #ff33cc, 0 0 50px #89CFF0, 0 0 80px #89CFF0; }
+}
+
+/* Subtitle / Abstract */
+.neon-abstract {
+  font-family: var(--font-mono);
+  font-size: clamp(0.85rem, 1.5vw, 1.1rem);
+  color: var(--cyan);
+  margin-top: 24px;
+  max-width: 680px;
+  margin-left: auto;
+  margin-right: auto;
+  line-height: 1.7;
+  text-shadow: 0 0 6px var(--cyan-dim);
   animation: slight-dimming 4s infinite alternate;
 }
 
 @keyframes slight-dimming {
-  0%, 100% {
-    text-shadow: 0 0 5px #00bfff, 0 0 15px #0088ff, 0 0 20px #0055ff;
-  }
-  50% {
-    text-shadow: 0 0 10px #00bfff, 0 0 20px #0088ff, 0 0 30px #0055ff;
-  }
+  0%,100% { opacity: 1; }
+  50%      { opacity: 0.75; }
 }
 
-/* Wrapper for the Resume */
-.wrapper {
-  max-width: 900px;
-  margin: 50px auto;
-  padding: 45px;
-  background-color: #1a1a1a;
-  border-radius: 15px;
-  box-shadow: 0 0 15px #00ffcc;
-  transform: perspective(1000px) rotateX(5deg) rotateY(-5deg);
-  transition: transform 0.5s ease;
+/* CTA Buttons */
+.btn-group {
+  display: flex;
+  gap: 16px;
+  justify-content: center;
+  margin-top: 40px;
+  flex-wrap: wrap;
 }
 
-.wrapper:hover {
-  transform: perspective(2000px) rotateX(0deg) rotateY(0deg) scale(1.05);
+.btn {
+  font-family: var(--font-hud);
+  font-size: 0.65rem;
+  letter-spacing: 0.25em;
+  text-transform: uppercase;
+  text-decoration: none;
+  padding: 12px 28px;
+  border: 1px solid var(--green);
+  color: var(--green);
+  background: transparent;
+  cursor: pointer;
+  position: relative;
+  transition: all 0.25s;
+  clip-path: polygon(8px 0%, 100% 0%, calc(100% - 8px) 100%, 0% 100%);
 }
 
-/* Section Headers */
-h1, h2, h3 {
-  color: #ff33cc; /* Bright pink for titles */
-  text-shadow: 0 0 5px #ff33cc, 0 0 10px #ff66ff;
-  transform: perspective(500px) rotateX(10deg);
+.btn:hover {
+  background: var(--green-subtle);
+  box-shadow: 0 0 20px var(--green-glow), inset 0 0 20px rgba(0,255,65,0.05);
+  color: #fff;
+  text-shadow: 0 0 8px var(--green);
 }
 
+.btn-primary {
+  background: rgba(0,255,65,0.1);
+  box-shadow: 0 0 12px var(--green-glow);
+}
+
+/* ============================================================
+   MAIN CONTENT — max width container
+   ============================================================ */
+.container {
+  max-width: 1200px;
+  margin: 0 auto;
+  padding: 0 40px;
+}
+
+/* ============================================================
+   SECTION STYLES
+   ============================================================ */
 section {
-  margin: 30px 0;
-  text-align: left;
+  padding: 80px 0;
 }
 
-/* Skills, Projects, and Experience Styling */
-.skills ul {
-  list-style-type: none;
-  padding: 0;
+.section-header {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  margin-bottom: 48px;
 }
 
-.skills li {
-  background-color: #262626;
-  margin: 10px 0;
-  padding: 10px;
-  border-radius: 8px;
-  box-shadow: 0 0 8px #00ffcc;
-  transform: perspective(800px) rotateY(5deg);
-  transition: transform 0.3s ease;
+.section-header h2 {
+  font-family: var(--font-hud);
+  font-size: clamp(1rem, 2.5vw, 1.4rem);
+  font-weight: 600;
+  color: var(--pink);
+  text-transform: uppercase;
+  letter-spacing: 0.2em;
+  text-shadow: 0 0 8px var(--pink), 0 0 16px rgba(255,51,204,0.4);
+  transform: none;
 }
 
-.skills li:hover {
-  transform: perspective(800px) rotateY(0deg) scale(1.1);
+.section-line {
+  flex: 1;
+  height: 1px;
+  background: linear-gradient(90deg, rgba(0,255,65,0.5), transparent);
 }
 
-.project, .experience-item {
-  background-color: #262626;
-  padding: 20px;
-  border-radius: 15px;
-  box-shadow: 0 0 10px #ff33cc;
-  margin-bottom: 20px;
-  transition: transform 0.3s ease, box-shadow 0.3s ease;
-  transform: perspective(1000px) rotateX(5deg);
+.section-num {
+  font-size: 0.6rem;
+  color: var(--text-dim);
+  letter-spacing: 0.2em;
 }
 
-.project:hover, .experience-item:hover {
-  transform: perspective(1000px) rotateX(0deg) scale(1.05);
-  box-shadow: 0 0 20px #ff33cc;
+/* ============================================================
+   SKILLS GRID
+   ============================================================ */
+.skills-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+  gap: 12px;
+}
+
+.skill-item {
+  padding: 14px 18px;
+  background: rgba(0,255,65,0.04);
+  border: 1px solid rgba(0,255,65,0.2);
+  border-left: 2px solid var(--green);
+  font-family: var(--font-mono);
+  font-size: 0.85rem;
+  color: var(--green);
+  transition: all 0.25s;
+  position: relative;
+  overflow: hidden;
+}
+
+.skill-item::before {
+  content: '> ';
+  color: var(--text-dim);
+}
+
+.skill-item:hover {
+  background: rgba(0,255,65,0.1);
+  border-color: var(--green);
+  box-shadow: 0 0 12px var(--green-glow);
+  transform: translateX(4px);
+}
+
+/* ============================================================
+   PROJECTS GRID
+   ============================================================ */
+.projects-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(320px, 1fr));
+  gap: 20px;
+}
+
+.project {
+  padding: 28px;
+  background: var(--panel-bg);
+  border: 1px solid rgba(0,255,65,0.25);
+  position: relative;
+  transition: all 0.3s;
+  overflow: hidden;
+}
+
+.project::before {
+  content: '';
+  position: absolute;
+  top: 0; left: 0;
+  width: 3px; height: 100%;
+  background: linear-gradient(180deg, var(--pink), transparent);
+}
+
+.project::after {
+  content: '';
+  position: absolute;
+  top: -1px; right: -1px;
+  width: 14px; height: 14px;
+  border-top: 2px solid var(--pink);
+  border-right: 2px solid var(--pink);
+}
+
+.project:hover {
+  border-color: rgba(255,51,204,0.5);
+  box-shadow: 0 0 30px rgba(255,51,204,0.15), 0 0 60px rgba(0,255,65,0.05);
+  transform: translateY(-4px);
+}
+
+.project h3 {
+  font-family: var(--font-hud);
+  font-size: 0.85rem;
+  letter-spacing: 0.15em;
+  color: var(--cyan);
+  text-transform: uppercase;
+  margin-bottom: 10px;
+  text-shadow: 0 0 8px var(--cyan-dim);
+  transform: none;
+}
+
+.project p {
+  font-size: 0.82rem;
+  color: var(--text-dim);
+  line-height: 1.6;
+  margin-bottom: 16px;
 }
 
 .project a {
-  color: #00bfff; /* Link color */
+  font-family: var(--font-hud);
+  font-size: 0.6rem;
+  letter-spacing: 0.2em;
+  color: var(--cyan);
   text-decoration: none;
-  transition: color 0.3s ease-in-out, text-shadow 0.3s ease-in-out;
+  text-transform: uppercase;
+  border-bottom: 1px solid rgba(0,229,255,0.3);
+  padding-bottom: 2px;
+  transition: all 0.2s;
 }
 
 .project a:hover {
-  color: #ff33cc;
-  text-shadow: 0 0 8px #ff33cc, 0 0 16px #ff33cc;
+  color: var(--pink);
+  border-color: var(--pink);
+  text-shadow: 0 0 8px var(--pink);
 }
 
-/* Bitcoin Tracker Styling */
-.bitcoin-tracker {
-  background-color: #262626;
-  padding: 20px;
-  border-radius: 15px;
-  box-shadow: 0 0 15px #00ffcc;
-  margin: 30px 0;
+/* ============================================================
+   EXPERIENCE
+   ============================================================ */
+.experience-item {
+  padding: 28px 32px;
+  background: var(--panel-bg);
+  border: 1px solid rgba(0,255,65,0.15);
+  border-top: 2px solid rgba(0,229,255,0.4);
+  margin-bottom: 16px;
+  transition: all 0.3s;
+  position: relative;
+}
+
+.experience-item:hover {
+  border-top-color: var(--cyan);
+  box-shadow: 0 0 24px rgba(0,229,255,0.1);
+  transform: translateX(6px);
+}
+
+.experience-item h3 {
+  font-family: var(--font-hud);
+  font-size: 0.85rem;
+  letter-spacing: 0.15em;
+  color: var(--green);
+  text-transform: uppercase;
+  margin-bottom: 6px;
+  transform: none;
+}
+
+.experience-meta {
+  font-size: 0.7rem;
+  color: var(--cyan-dim);
+  letter-spacing: 0.1em;
+  margin-bottom: 12px;
+}
+
+.experience-item p {
+  font-size: 0.82rem;
+  color: var(--text-dim);
+  line-height: 1.7;
+}
+
+/* ============================================================
+   DATA READOUT WIDGET (Bitcoin Tracker / Stats)
+   ============================================================ */
+.data-widget {
+  padding: 28px 32px;
+  background: var(--panel-bg);
+  border: 1px solid rgba(0,255,65,0.25);
+  box-shadow: 0 0 20px var(--green-glow);
   text-align: center;
-  color: #00ffcc;
-  transform: perspective(1000px) rotateX(5deg) rotateY(-5deg);
-  transition: transform 0.5s ease;
+  transition: all 0.3s;
+  position: relative;
 }
 
-.bitcoin-tracker:hover {
-  transform: perspective(1000px) rotateX(0deg) rotateY(0deg) scale(1.05);
+.data-widget:hover {
+  box-shadow: 0 0 40px var(--green-glow);
+  transform: translateY(-4px);
 }
 
-.bitcoin-tracker h2 {
-  color: #ff33cc;
-  text-shadow: 0 0 5px #ff33cc, 0 0 10px #ff66ff;
+.data-value {
+  font-family: var(--font-hud);
+  font-size: clamp(1.8rem, 4vw, 2.8rem);
+  font-weight: 700;
+  color: var(--green);
+  text-shadow: 0 0 10px var(--green), 0 0 20px var(--green-dim);
+  letter-spacing: 0.05em;
 }
 
-/* Neon Sign Section */
-.neon-wrap {
+.data-label {
+  font-size: 0.65rem;
+  letter-spacing: 0.3em;
+  color: var(--text-dim);
+  text-transform: uppercase;
+  margin-top: 6px;
+}
+
+/* ============================================================
+   LOGIN PAGE
+   ============================================================ */
+.login-page {
+  min-height: 100vh;
   display: flex;
-  flex-direction: column; /* Stacking signs vertically */
   align-items: center;
-  gap: 30px; /* Space between signs */
-  padding: 50px;
-  background: linear-gradient(135deg, #0d0d0d, #1a1a1a); /* Dark gradient background */
-  height: 100vh;
+  justify-content: center;
+  padding: 100px 20px;
 }
 
+.login-card {
+  width: 100%;
+  max-width: 420px;
+  padding: 48px 40px;
+  background: rgba(0, 6, 0, 0.92);
+  border: 1px solid var(--green);
+  box-shadow: 0 0 40px var(--green-glow), 0 0 100px rgba(0,255,65,0.05);
+  position: relative;
+}
+
+.login-card h1 {
+  font-family: var(--font-hud);
+  font-size: 1.2rem;
+  letter-spacing: 0.3em;
+  color: var(--green);
+  text-transform: uppercase;
+  text-align: center;
+  margin-bottom: 36px;
+  text-shadow: 0 0 10px var(--green);
+  transform: none;
+}
+
+.form-group {
+  margin-bottom: 20px;
+}
+
+.form-group label {
+  display: block;
+  font-size: 0.65rem;
+  letter-spacing: 0.2em;
+  color: var(--text-dim);
+  text-transform: uppercase;
+  margin-bottom: 8px;
+}
+
+.form-group input {
+  width: 100%;
+  background: rgba(0,255,65,0.04);
+  border: 1px solid rgba(0,255,65,0.25);
+  border-left: 2px solid var(--green);
+  color: var(--green);
+  font-family: var(--font-mono);
+  font-size: 0.9rem;
+  padding: 10px 14px;
+  outline: none;
+  transition: all 0.2s;
+  caret-color: var(--green);
+}
+
+.form-group input:focus {
+  background: rgba(0,255,65,0.08);
+  border-color: var(--green);
+  box-shadow: 0 0 12px rgba(0,255,65,0.2);
+}
+
+.form-group input::placeholder { color: var(--text-dim); opacity: 0.6; }
+
+/* Neon Sign button */
 .neon-sign {
-  padding: 20px 40px;
-  background-color: #262626;
-  border-radius: 10px;
-  box-shadow: 0 0 20px #000; /* Subtle shadow for realism */
+  display: block;
+  width: 100%;
+  padding: 14px 20px;
+  background: rgba(0,255,65,0.08);
+  border: 1px solid var(--green);
+  color: var(--green);
+  font-family: var(--font-hud);
+  font-size: 0.75rem;
+  letter-spacing: 0.3em;
+  text-transform: uppercase;
+  cursor: pointer;
+  transition: all 0.25s;
+  text-shadow: 0 0 8px var(--green);
+  margin-top: 28px;
+  clip-path: polygon(8px 0%, 100% 0%, calc(100% - 8px) 100%, 0% 100%);
+  text-decoration: none; /* explicit override */
+
 }
 
-.neon-text {
-  font-family: 'Orbitron', Arial, sans-serif;
-  font-size: 6rem;
-  color: #ff99cc; /* Base pink */
-  text-shadow: 
-    0 0 5px #A4DDED, /* Pink inner glow */
-    0 0 10px #A4DDED, /* Peach middle glow */
-    0 0 20px #99ccff; /* Blue outer glow */;
-  animation: flicker 3s infinite alternate;
+.neon-sign:hover {
+  background: rgba(0,255,65,0.18);
+  box-shadow: 0 0 24px var(--green-glow);
+  transform: translateY(-2px);
 }
 
-@keyframes flicker {
-  0%, 100% {
-    opacity: 1;
-    text-shadow: 
-      0 0 10px #ff33cc,
-      0 0 20px #ff66ff,
-      0 0 30px #ff99ff,
-      0 0 40px #ff66ff;
-  }
-  50% {
-    opacity: 0.8;
-    text-shadow: 
-      0 0 2px #ff33cc,
-      0 0 8px #ff66ff,
-      0 0 15px #ff99ff,
-      0 0 20px #ff66ff;
-  }
+/* ============================================================
+   SERVERS PAGE
+   ============================================================ */
+.servers-page {
+  padding: 100px 40px 60px;
+  min-height: 100vh;
+  position: relative;
+  z-index: 2;
+}
+
+.servers-list {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(160px, 1fr));
+  gap: 16px;
+  margin-top: 40px;
+}
+
+.server-card {
+  padding: 24px 16px;
+  background: rgba(0,5,0,0.85);
+  border: 1px solid rgba(255,51,204,0.25);
+  text-align: center;
+  transition: all 0.3s;
+  position: relative;
+  cursor: pointer;
+}
+
+.server-card::before {
+  content: '';
+  position: absolute;
+  top: -1px; left: -1px;
+  width: 10px; height: 10px;
+  border-top: 2px solid var(--pink);
+  border-left: 2px solid var(--pink);
+}
+
+.server-card:hover {
+  border-color: rgba(255,51,204,0.6);
+  box-shadow: 0 0 24px rgba(255,51,204,0.2);
+  transform: translateY(-6px);
+}
+
+.server-icon {
+  width: 72px; height: 72px;
+  border-radius: 50%;
+  border: 2px solid rgba(0,255,65,0.3);
+  object-fit: cover;
+  margin-bottom: 12px;
+  display: block;
+  margin-left: auto;
+  margin-right: auto;
+  box-shadow: 0 0 12px var(--green-glow);
+}
+
+.server-card p {
+  font-size: 0.75rem;
+  color: var(--cyan);
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+}
+
+/* ============================================================
+   WRAPPER (card box)
+   ============================================================ */
+.wrapper {
+  max-width: 680px;
+  margin: 60px auto;
+  padding: 48px;
+  background: rgba(0, 8, 0, 0.88);
+  border: 1px solid rgba(0,255,65,0.35);
+  box-shadow: 0 0 40px var(--green-glow), 0 0 100px rgba(0,255,65,0.04);
+  position: relative;
+  transition: box-shadow 0.4s ease;
+}
+
+.wrapper:hover {
+  box-shadow: 0 0 60px var(--green-glow), 0 0 120px rgba(0,229,255,0.05);
+}
+
+/* ============================================================
+   HEADINGS (global)
+   ============================================================ */
+h1, h2, h3, h4 {
+  transform: none;
+}
+
+h1 {
+  font-family: var(--font-hud);
+  color: var(--pink);
+  text-shadow: 0 0 8px var(--pink), 0 0 16px rgba(255,51,204,0.4);
+}
+
+h2 {
+  font-family: var(--font-hud);
+  color: var(--pink);
+  text-shadow: 0 0 6px var(--pink);
+}
+
+h3 {
+  font-family: var(--font-hud);
+  color: var(--green);
+  text-shadow: 0 0 6px var(--green-dim);
+}
+
+/* ============================================================
+   SCROLLBAR
+   ============================================================ */
+::-webkit-scrollbar { width: 4px; }
+::-webkit-scrollbar-track { background: #000; }
+::-webkit-scrollbar-thumb {
+  background: var(--green-dim);
+  box-shadow: 0 0 6px var(--green);
+}
+
+/* ============================================================
+   SELECTION
+   ============================================================ */
+::selection {
+  background: rgba(0,255,65,0.25);
+  color: #fff;
+}
+
+/* ============================================================
+   RESUME PAGE
+   ============================================================ */
+.resume-page {
+  max-width: 1200px;
+  margin: 0 auto;
+  padding: 100px 40px 60px;
+  position: relative;
+  z-index: 2;
+}
+
+/* ============================================================
+   UTILITY
+   ============================================================ */
+.text-green  { color: var(--green); }
+.text-cyan   { color: var(--cyan); }
+.text-pink   { color: var(--pink); }
+.text-dim    { color: var(--text-dim); }
+.glow-green  { text-shadow: 0 0 8px var(--green); }
+.glow-pink   { text-shadow: 0 0 8px var(--pink); }
+.glow-cyan   { text-shadow: 0 0 8px var(--cyan); }
+.mt-sm  { margin-top: 16px; }
+.mt-md  { margin-top: 32px; }
+.mt-lg  { margin-top: 64px; }
+.mb-sm  { margin-bottom: 16px; }
+.mb-md  { margin-bottom: 32px; }
+
+/* ============================================================
+   RESPONSIVE
+   ============================================================ */
+@media (max-width: 768px) {
+  .nav { padding: 12px 20px; }
+  .nav-links { gap: 16px; }
+  .nav-links a { font-size: 0.55rem; }
+  .container { padding: 0 20px; }
+  .intro { padding: 80px 20px 40px; }
+  .projects-grid { grid-template-columns: 1fr; }
+  .skills-grid { grid-template-columns: repeat(auto-fill, minmax(140px, 1fr)); }
+  .wrapper { padding: 28px 20px; }
+  .resume-page, .servers-page { padding: 80px 20px 40px; }
+  .login-card { padding: 36px 24px; }
 }
