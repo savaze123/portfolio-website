@@ -1,21 +1,30 @@
 import os
+import time
 import requests
 from flask import Flask, jsonify, redirect, request, session, send_from_directory
 from flask_cors import CORS
 from flask_session import Session
 
+
 # Initialize Flask app
 app = Flask(__name__, static_folder="frontend/build")
 app.secret_key = os.getenv("SECRET_KEY", "supersecretkey")
 
+# Cache for crypto prices (60 second TTL)
+crypto_cache = {"data": None, "timestamp": 0}
+
+
 # Configure Flask-Session
-app.config["SESSION_TYPE"] = "filesystem"  # Store session data in the filesystem
-app.config["SESSION_PERMANENT"] = False    # Make sessions temporary
-app.config["SESSION_USE_SIGNER"] = True    # Sign session cookies for security
+app.config["SESSION_TYPE"] = "filesystem"
+app.config["SESSION_PERMANENT"] = False
+app.config["SESSION_USE_SIGNER"] = True
+app.config["SESSION_COOKIE_SAMESITE"] = "Lax"
+app.config["SESSION_COOKIE_SECURE"] = False
+app.config["SESSION_COOKIE_HTTPONLY"] = True
 Session(app)
 
 # Enable CORS
-CORS(app, resources={r"/*": {"origins": "http://localhost:3000"}}, supports_credentials=True)
+CORS(app, resources={r"/*": {"origins": ["http://localhost:3000", "http://127.0.0.1:3000"]}}, supports_credentials=True)
 
 # Discord API credentials
 DISCORD_CLIENT_ID = "1312997218659340288"
@@ -31,7 +40,7 @@ def login():
         f"?client_id={DISCORD_CLIENT_ID}"
         f"&redirect_uri={DISCORD_REDIRECT_URI}"
         f"&response_type=code"
-        f"&scope=identify guilds"
+        f"&scope=identify+guilds+connections"
     )
     return redirect(discord_auth_url)
 
@@ -44,19 +53,20 @@ def callback():
     if not code:
         return jsonify({"error": "Authorization code not provided"}), 400
 
-    # Exchange the authorization code for an access token
     token_url = f"{DISCORD_API_BASE_URL}/oauth2/token"
     data = {
         "client_id": DISCORD_CLIENT_ID,
         "client_secret": DISCORD_CLIENT_SECRET,
         "grant_type": "authorization_code",
         "code": code,
-        "redirect_uri": DISCORD_REDIRECT_URI, 
+        "redirect_uri": DISCORD_REDIRECT_URI,
     }
     headers = {"Content-Type": "application/x-www-form-urlencoded"}
     response = requests.post(token_url, data=data, headers=headers)
 
     if response.status_code != 200:
+        print("Token exchange failed:", response.json())
+        print("Response text:", response.text)  # use .text instead of .json()
         return redirect("http://localhost:3000/login?error=token_failed")
 
     token_data = response.json()
@@ -66,9 +76,10 @@ def callback():
     # Store tokens in the session
     session["access_token"] = access_token
     session["refresh_token"] = refresh_token
+    session.modified = True
+    print("Session after setting:", dict(session))
 
-    # Redirect to React callback handler (not directly to /servers)
-    return redirect("http://localhost:3000/callback")
+    return redirect("http://127.0.0.1:3000/callback")
 
 
 # Fetch Discord Servers
@@ -80,12 +91,87 @@ def get_servers():
         return jsonify({"error": "User not logged in"}), 401
 
     headers = {"Authorization": f"Bearer {access_token}"}
-    response = requests.get(f"{DISCORD_API_BASE_URL}/users/@me/guilds", headers=headers)
+    response = requests.get(f"{DISCORD_API_BASE_URL}/users/@me/guilds?with_counts=true", headers=headers)
 
     if response.status_code != 200:
+        print("Token exchange failed:", response.json())
         return jsonify({"error": "Failed to fetch servers"}), response.status_code
 
-    return jsonify(response.json())
+    servers = response.json()
+    # Add owner field to each server
+    for server in servers:
+        server["owner"] = server.get("owner", False)
+    
+    return jsonify(servers)
+
+
+# Fetch User Profile
+@app.route('/api/profile', methods=['GET'])
+def get_profile():
+    """Fetch the user's profile and connections using their access token."""
+    access_token = session.get("access_token")
+    if not access_token:
+        return jsonify({"error": "User not logged in"}), 401
+
+    headers = {"Authorization": f"Bearer {access_token}"}
+    
+    # Fetch user profile
+    user_response = requests.get(f"{DISCORD_API_BASE_URL}/v10/users/@me", headers=headers)
+    if user_response.status_code != 200:
+        return jsonify({"error": "Failed to fetch user profile"}), user_response.status_code
+    
+    user_data = user_response.json()
+    
+    # Fetch user connections
+    connections_response = requests.get(f"{DISCORD_API_BASE_URL}/v10/users/@me/connections", headers=headers)
+    if connections_response.status_code != 200:
+        return jsonify({"error": "Failed to fetch connections"}), connections_response.status_code
+    
+    connections_data = connections_response.json()
+    
+    # Format response with avatar URL
+    profile = {
+        "username": user_data.get("username"),
+        "discriminator": user_data.get("discriminator"),
+        "avatar": f"https://cdn.discordapp.com/avatars/{user_data.get('id')}/{user_data.get('avatar')}.png" if user_data.get("avatar") else None,
+        "connections": [{"type": conn.get("type"), "name": conn.get("name")} for conn in connections_data]
+    }
+    
+    return jsonify(profile)
+
+
+# Fetch Cryptocurrency Prices
+@app.route('/api/crypto', methods=['GET'])
+def get_crypto_prices():
+    """Fetch crypto prices from CoinGecko with 60-second cache."""
+    global crypto_cache
+    current_time = time.time()
+    
+    # Return cached data if still valid (within 60 seconds)
+    if crypto_cache["data"] is not None and (current_time - crypto_cache["timestamp"]) < 60:
+        return jsonify(crypto_cache["data"])
+    
+    try:
+        response = requests.get(
+            "https://api.coingecko.com/api/v3/simple/price?ids=bitcoin,ethereum,solana,dogecoin&vs_currencies=usd"
+        )
+        response.raise_for_status()
+        data = response.json()
+        
+        # Extract prices into simple format
+        prices = {
+            "bitcoin": int(data.get("bitcoin", {}).get("usd", 0)),
+            "ethereum": int(data.get("ethereum", {}).get("usd", 0)),
+            "solana": int(data.get("solana", {}).get("usd", 0))
+        }
+        
+        # Update cache
+        crypto_cache["data"] = prices
+        crypto_cache["timestamp"] = current_time
+        
+        return jsonify(prices)
+    except requests.exceptions.RequestException as e:
+        return jsonify({"error": "Failed to fetch crypto prices"}), 500
 
 
 # Fetch Resume Data
@@ -95,15 +181,15 @@ def get_resume():
     resume_data = {
         'name': 'Savaze Khattak',
         'email': 'savazework@gmail.com',
-        'phone': '+(929)-421-6655',
         'linkedin': 'https://www.linkedin.com/in/savaze-khattak/',
         'summary': (
             'Software Developer with a strong foundation in Python, Bash, and SQL, '
-            'and specialized training in IBM Data Engineering workflows. Experienced in '
-            'integrating complex third-party APIs and building modular automation tools. '
-            'Expertly leverages AI-assisted development and LLM-driven workflows to '
-            'accelerate software delivery and implement automated testing. Seeking to apply '
-            'technical curiosity and data expertise to modernize IBM Z mainframe environments.'
+            'and hands-on experience in data engineering workflows and pipeline development. '
+            'Experienced in integrating complex third-party APIs and building modular automation tools. '
+            'Leverages AI-assisted development and LLM-driven workflows to '
+            'accelerate software delivery and implement automated testing. '
+            'Seeking to apply technical curiosity and data expertise to modernize '
+            'legacy systems and drive operational efficiency.'
         ),
         'education': {
             'degree': 'BA in Computer Science',
@@ -196,6 +282,8 @@ def get_resume():
         ]
     }
     return jsonify(resume_data)
+
+
 # Fetch Bitcoin Price
 @app.route('/api/bitcoin-price', methods=['GET'])
 def get_bitcoin_price():

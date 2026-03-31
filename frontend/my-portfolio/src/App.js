@@ -9,13 +9,10 @@ import ResumePage from './ResumePage';
 
 function CallbackHandler() {
   const navigate = useNavigate();
-
   useEffect(() => {
     const handleCallback = async () => {
       try {
-        const response = await axios.get('http://127.0.0.1:5000/api/check-auth', {
-          withCredentials: true,
-        });
+        const response = await axios.get('/api/check-auth', { withCredentials: true });
         if (response.data.authenticated) {
           navigate('/servers');
         } else {
@@ -26,17 +23,14 @@ function CallbackHandler() {
         navigate('/login');
       }
     };
-
     handleCallback();
   }, [navigate]);
-
   return <div>Processing login...</div>;
 }
+axios.defaults.baseURL = '';
+axios.defaults.withCredentials = true;
 
 function App() {
-  axios.defaults.baseURL = 'http://127.0.0.1:5000';
-  axios.defaults.withCredentials = true;
-
   return (
     <>
       <MatrixBackground />

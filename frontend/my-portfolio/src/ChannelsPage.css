@@ -1,0 +1,239 @@
+/* ChannelsPage.css — Matrix Terminal Theme */
+
+.channels-page {
+  position: relative;
+  z-index: 2;
+  min-height: 100vh;
+  padding: 100px 40px 60px;
+  display: flex;
+  flex-direction: column;
+}
+
+.channels-container {
+  display: flex;
+  gap: 20px;
+  flex: 1;
+  max-width: 1400px;
+  margin: 0 auto;
+  width: 100%;
+}
+
+/* ── Channels Sidebar ── */
+.channels-sidebar {
+  width: 280px;
+  background: rgba(0, 8, 0, 0.9);
+  border: 1px solid rgba(0, 255, 65, 0.3);
+  padding: 20px;
+  border-radius: 4px;
+  box-shadow: 0 0 20px rgba(0, 255, 65, 0.1);
+  max-height: 600px;
+  overflow-y: auto;
+}
+
+.server-title {
+  font-family: var(--font-hud);
+  font-size: 0.9rem;
+  letter-spacing: 0.2em;
+  color: var(--pink);
+  text-transform: uppercase;
+  margin-bottom: 16px;
+  text-shadow: 0 0 8px var(--pink);
+  border-bottom: 1px solid rgba(0, 255, 65, 0.2);
+  padding-bottom: 10px;
+}
+
+.channels-list {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.channel-item {
+  padding: 10px 12px;
+  background: rgba(0, 255, 65, 0.04);
+  border: 1px solid rgba(0, 255, 65, 0.1);
+  border-left: 2px solid rgba(0, 255, 65, 0.2);
+  color: var(--green-dim);
+  font-family: var(--font-mono);
+  font-size: 0.85rem;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  border-radius: 2px;
+}
+
+.channel-item:hover {
+  background: rgba(0, 255, 65, 0.08);
+  border-color: rgba(0, 255, 65, 0.3);
+  border-left-color: var(--green);
+  color: var(--green);
+}
+
+.channel-item.active {
+  background: rgba(0, 255, 65, 0.12);
+  border-color: var(--green);
+  border-left-color: var(--green);
+  color: var(--green);
+  box-shadow: 0 0 12px rgba(0, 255, 65, 0.2);
+}
+
+.no-channels {
+  color: var(--text-dim);
+  font-size: 0.8rem;
+  text-align: center;
+  padding: 20px;
+}
+
+/* ── Messages Terminal Panel ── */
+.messages-panel {
+  flex: 1;
+  background: var(--panel-bg);
+  border: 1px solid var(--panel-border);
+  box-shadow:
+    0 0 0 1px rgba(0, 255, 65, 0.1) inset,
+    0 0 20px var(--green-glow),
+    0 0 60px rgba(0, 255, 65, 0.08);
+  display: flex;
+  flex-direction: column;
+  border-radius: 2px;
+}
+
+.terminal-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 12px 16px;
+  background: rgba(0, 255, 65, 0.06);
+  border-bottom: 1px solid rgba(0, 255, 65, 0.2);
+  font-family: var(--font-mono);
+  font-size: 0.75rem;
+  color: var(--green-dim);
+}
+
+.terminal-title {
+  font-family: var(--font-hud);
+  font-weight: 600;
+  color: var(--green);
+  text-shadow: 0 0 6px var(--green-dim);
+  letter-spacing: 0.1em;
+}
+
+.terminal-status {
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: var(--green);
+  box-shadow: 0 0 6px var(--green);
+  animation: blink 1.4s infinite;
+  display: inline-block;
+}
+
+@keyframes blink {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.2; }
+}
+
+.terminal-output {
+  flex: 1;
+  overflow-y: auto;
+  padding: 16px;
+  font-family: var(--font-mono);
+  font-size: 0.8rem;
+  line-height: 1.8;
+  color: var(--green);
+  text-shadow: 0 0 4px var(--green-dim);
+  background: rgba(0, 0, 0, 0.5);
+  position: relative;
+}
+
+.terminal-empty {
+  flex: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  opacity: 0.6;
+}
+
+.message-line {
+  word-break: break-word;
+  white-space: pre-wrap;
+  animation: typewriter 0.3s ease-out forwards;
+  opacity: 0;
+}
+
+@keyframes typewriter {
+  0% {
+    opacity: 0;
+  }
+  100% {
+    opacity: 1;
+  }
+}
+
+.cursor {
+  display: inline-block;
+  animation: cursor-blink 1s infinite;
+  color: var(--green);
+  text-shadow: 0 0 6px var(--green);
+}
+
+@keyframes cursor-blink {
+  0%, 50% { opacity: 1; }
+  51%, 100% { opacity: 0; }
+}
+
+/* ── Scrollbar Styling ── */
+.terminal-output::-webkit-scrollbar {
+  width: 6px;
+}
+
+.terminal-output::-webkit-scrollbar-track {
+  background: rgba(0, 255, 65, 0.05);
+}
+
+.terminal-output::-webkit-scrollbar-thumb {
+  background: var(--green-dim);
+  box-shadow: 0 0 6px var(--green);
+  border-radius: 3px;
+}
+
+.terminal-output::-webkit-scrollbar-thumb:hover {
+  background: var(--green);
+}
+
+/* ── Error Message ── */
+.error-message {
+  color: #ff4c4c;
+  margin: 20px 0;
+  font-size: 1rem;
+  font-family: var(--font-mono);
+}
+
+/* ── Responsive ── */
+@media (max-width: 1024px) {
+  .channels-container {
+    flex-direction: column;
+  }
+
+  .channels-sidebar {
+    width: 100%;
+    max-height: 200px;
+  }
+
+  .messages-panel {
+    min-height: 400px;
+  }
+}
+
+@media (max-width: 768px) {
+  .channels-page {
+    padding: 80px 20px 40px;
+  }
+
+  .channels-sidebar {
+    max-height: 150px;
+  }
+
+  .terminal-output {
+    font-size: 0.75rem;
+  }
+}
