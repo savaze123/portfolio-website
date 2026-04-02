@@ -1,14 +1,27 @@
 import os
 import time
 import requests
+from dotenv import load_dotenv
 from flask import Flask, jsonify, redirect, request, session, send_from_directory
 from flask_cors import CORS
 from flask_session import Session
 
+load_dotenv()
+
+# Validate required environment variables at startup
+_REQUIRED_ENV_VARS = [
+    "SECRET_KEY",
+    "DISCORD_CLIENT_ID",
+    "DISCORD_CLIENT_SECRET",
+    "DISCORD_REDIRECT_URI",
+]
+_missing = [var for var in _REQUIRED_ENV_VARS if not os.getenv(var)]
+if _missing:
+    raise RuntimeError(f"Missing required environment variables: {', '.join(_missing)}")
 
 # Initialize Flask app
 app = Flask(__name__, static_folder="frontend/build")
-app.secret_key = os.getenv("SECRET_KEY", "supersecretkey")
+app.secret_key = os.getenv("SECRET_KEY")
 
 # Cache for crypto prices (60 second TTL)
 crypto_cache = {"data": None, "timestamp": 0}
@@ -27,9 +40,9 @@ Session(app)
 CORS(app, resources={r"/*": {"origins": ["http://localhost:3000", "http://127.0.0.1:3000"]}}, supports_credentials=True)
 
 # Discord API credentials
-DISCORD_CLIENT_ID = "1312997218659340288"
-DISCORD_CLIENT_SECRET = "xpkrUqI75cNy_NRrBp0NsdqRHMRuZ7On"
-DISCORD_REDIRECT_URI = "http://127.0.0.1:5000/api/callback"
+DISCORD_CLIENT_ID = os.getenv("DISCORD_CLIENT_ID")
+DISCORD_CLIENT_SECRET = os.getenv("DISCORD_CLIENT_SECRET")
+DISCORD_REDIRECT_URI = os.getenv("DISCORD_REDIRECT_URI")
 DISCORD_API_BASE_URL = "https://discord.com/api"
 
 # Discord OAuth2 Login Route
