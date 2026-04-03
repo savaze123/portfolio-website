@@ -1,0 +1,349 @@
+/* ═══════════════════════════════════════════════════════════════
+   Security Gate Component — Human Verification + Honeypot
+   ═══════════════════════════════════════════════════════════════ */
+
+.security-gate-overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: linear-gradient(135deg, rgba(0, 8, 0, 0.98), rgba(0, 15, 10, 0.98));
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 10000;
+  backdrop-filter: blur(3px);
+  animation: fadeIn 0.4s ease-out;
+}
+
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+
+/* Container */
+.security-gate-container {
+  background: rgba(0, 8, 0, 0.95);
+  border: 2px solid var(--green);
+  box-shadow:
+    0 0 0 1px rgba(0, 255, 65, 0.1) inset,
+    0 0 40px var(--green-glow),
+    0 0 100px rgba(0, 255, 65, 0.12);
+  font-family: 'Share Tech Mono', monospace;
+  color: var(--green);
+  position: relative;
+  max-width: 500px;
+  width: 90%;
+  display: flex;
+  flex-direction: column;
+  animation: slideUp 0.4s ease-out;
+}
+
+@keyframes slideUp {
+  from {
+    transform: translateY(30px);
+    opacity: 0;
+  }
+  to {
+    transform: translateY(0);
+    opacity: 1;
+  }
+}
+
+/* Corner brackets */
+.security-gate-container::before,
+.security-gate-container::after {
+  content: '';
+  position: absolute;
+  width: 24px;
+  height: 24px;
+  border-color: var(--green);
+  border-style: solid;
+  pointer-events: none;
+  z-index: 1;
+}
+
+.security-gate-container::before {
+  top: -2px;
+  left: -2px;
+  border-width: 2px 0 0 2px;
+}
+
+.security-gate-container::after {
+  bottom: -2px;
+  right: -2px;
+  border-width: 0 2px 2px 0;
+}
+
+/* Header */
+.security-gate-header {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  padding: 16px;
+  background: linear-gradient(90deg, rgba(0, 255, 65, 0.15), transparent);
+  border-bottom: 1px solid rgba(0, 255, 65, 0.3);
+}
+
+.security-gate-header h2 {
+  margin: 0;
+  font-size: 1.1rem;
+  font-weight: normal;
+  letter-spacing: 2px;
+  color: var(--cyan);
+  text-shadow: 0 0 12px var(--cyan);
+}
+
+.security-subtitle {
+  margin: 0;
+  font-size: 0.85rem;
+  color: rgba(0, 255, 65, 0.7);
+  letter-spacing: 1px;
+}
+
+/* Content */
+.security-gate-content {
+  padding: 20px 16px;
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+/* Verification Section */
+.verification-section {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.verification-instruction {
+  margin: 0;
+  font-size: 0.9rem;
+  color: var(--green);
+}
+
+/* Phrase Box */
+.phrase-box {
+  padding: 12px;
+  background: rgba(0, 0, 0, 0.6);
+  border: 1px solid var(--cyan);
+  border-radius: 2px;
+  text-align: center;
+}
+
+.phrase-text {
+  margin: 0;
+  font-size: 1rem;
+  color: var(--cyan);
+  letter-spacing: 1px;
+  text-shadow: 0 0 8px var(--cyan);
+}
+
+/* Form Group */
+.form-group {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.form-label {
+  font-size: 0.8rem;
+  color: var(--green);
+  letter-spacing: 1px;
+  text-transform: uppercase;
+}
+
+/* Security Input */
+.security-input {
+  padding: 10px 12px;
+  background: rgba(0, 0, 0, 0.8);
+  border: 2px solid var(--green);
+  color: var(--green);
+  font-family: 'Share Tech Mono', monospace;
+  font-size: 0.9rem;
+  outline: none;
+  transition: all 0.3s ease;
+}
+
+.security-input:focus {
+  border-color: var(--cyan);
+  box-shadow:
+    0 0 12px rgba(0, 229, 255, 0.4),
+    inset 0 0 8px rgba(0, 229, 255, 0.1);
+  background: rgba(0, 20, 0, 0.9);
+}
+
+.security-input::placeholder {
+  color: rgba(0, 255, 65, 0.4);
+}
+
+.security-input:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+/* Error Message */
+.error-message {
+  padding: 10px 12px;
+  background: rgba(255, 76, 76, 0.15);
+  border: 1px solid rgba(255, 76, 76, 0.4);
+  border-left: 3px solid #ff4c4c;
+  color: #ff6b6b;
+  font-size: 0.85rem;
+  animation: slideDown 0.3s ease-out;
+}
+
+.error-message.violation {
+  background: rgba(255, 76, 76, 0.25);
+  border-left-color: #ff0000;
+  color: #ff0000;
+  font-weight: bold;
+  text-shadow: 0 0 6px rgba(255, 0, 0, 0.5);
+  animation: pulse-violation 0.5s ease-out;
+}
+
+@keyframes slideDown {
+  from {
+    opacity: 0;
+    transform: translateY(-8px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@keyframes pulse-violation {
+  0%, 100% {
+    transform: scale(1);
+  }
+  50% {
+    transform: scale(1.02);
+  }
+}
+
+.error-icon {
+  margin-right: 6px;
+}
+
+/* Attempts Counter */
+.attempts-counter {
+  padding: 8px 12px;
+  background: rgba(255, 170, 0, 0.1);
+  border: 1px solid rgba(255, 170, 0, 0.3);
+  border-left: 2px solid #ffaa00;
+  font-size: 0.8rem;
+}
+
+.attempts-text {
+  color: #ffcc00;
+}
+
+/* Info Box */
+.info-box {
+  padding: 10px 12px;
+  background: rgba(0, 229, 255, 0.08);
+  border: 1px solid rgba(0, 229, 255, 0.2);
+  border-radius: 2px;
+}
+
+.info-text {
+  margin: 0;
+  font-size: 0.8rem;
+  color: rgba(0, 255, 65, 0.8);
+  line-height: 1.5;
+}
+
+/* Footer */
+.security-gate-footer {
+  display: flex;
+  justify-content: center;
+  padding: 16px;
+  background: linear-gradient(90deg, transparent, rgba(0, 255, 65, 0.1));
+  border-top: 1px solid rgba(0, 255, 65, 0.3);
+}
+
+/* Verify Button */
+.verify-btn {
+  padding: 10px 20px;
+  background: var(--green);
+  color: #000;
+  border: none;
+  font-family: 'Share Tech Mono', monospace;
+  font-size: 0.85rem;
+  font-weight: bold;
+  letter-spacing: 1px;
+  cursor: pointer;
+  text-transform: uppercase;
+  transition: all 0.3s ease;
+  box-shadow:
+    0 0 0 1px var(--green),
+    0 0 15px var(--green),
+    0 0 40px rgba(0, 255, 65, 0.3),
+    inset 0 0 15px rgba(255, 255, 255, 0.1);
+}
+
+.verify-btn:hover:not(:disabled) {
+  background: var(--cyan);
+  box-shadow:
+    0 0 0 1px var(--cyan),
+    0 0 15px var(--cyan),
+    0 0 40px rgba(0, 229, 255, 0.3),
+    inset 0 0 15px rgba(255, 255, 255, 0.15);
+}
+
+.verify-btn:active:not(:disabled) {
+  transform: scale(0.98);
+}
+
+.verify-btn:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.verify-btn.loading {
+  animation: pulse-btn 1.5s infinite;
+}
+
+@keyframes pulse-btn {
+  0%, 100% {
+    opacity: 1;
+  }
+  50% {
+    opacity: 0.6;
+  }
+}
+
+/* Responsive: Mobile */
+@media (max-width: 480px) {
+  .security-gate-container {
+    width: 95%;
+  }
+
+  .security-gate-header h2 {
+    font-size: 1rem;
+  }
+
+  .phrase-text {
+    font-size: 0.95rem;
+  }
+
+  .security-input {
+    font-size: 0.85rem;
+    padding: 8px 10px;
+  }
+
+  .verify-btn {
+    font-size: 0.8rem;
+    padding: 8px 16px;
+  }
+
+  .info-text {
+    font-size: 0.75rem;
+  }
+}

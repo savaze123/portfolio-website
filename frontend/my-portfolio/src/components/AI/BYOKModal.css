@@ -1,0 +1,510 @@
+/* ═══════════════════════════════════════════════════════════════
+   BYOK Modal Component — Bring Your Own Key
+   ═══════════════════════════════════════════════════════════════ */
+
+/* Overlay */
+.byok-overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: rgba(0, 0, 0, 0.85);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 9999;
+  backdrop-filter: blur(2px);
+  animation: fadeIn 0.3s ease-out;
+}
+
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+
+/* Modal */
+.byok-modal {
+  background: rgba(0, 8, 0, 0.95);
+  border: 2px solid var(--green);
+  box-shadow:
+    0 0 0 1px rgba(0, 255, 65, 0.1) inset,
+    0 0 30px var(--green-glow),
+    0 0 80px rgba(0, 255, 65, 0.1);
+  font-family: 'Share Tech Mono', monospace;
+  color: var(--green);
+  position: relative;
+  max-width: 500px;
+  width: 90%;
+  max-height: 90vh;
+  overflow-y: auto;
+  display: flex;
+  flex-direction: column;
+  animation: slideUp 0.3s ease-out;
+}
+
+@keyframes slideUp {
+  from {
+    transform: translateY(20px);
+    opacity: 0;
+  }
+  to {
+    transform: translateY(0);
+    opacity: 1;
+  }
+}
+
+/* Corner brackets */
+.byok-modal::before,
+.byok-modal::after {
+  content: '';
+  position: absolute;
+  width: 20px;
+  height: 20px;
+  border-color: var(--green);
+  border-style: solid;
+  pointer-events: none;
+  z-index: 1;
+}
+
+.byok-modal::before {
+  top: -2px;
+  left: -2px;
+  border-width: 2px 0 0 2px;
+}
+
+.byok-modal::after {
+  bottom: -2px;
+  right: -2px;
+  border-width: 0 2px 2px 0;
+}
+
+/* Header */
+.byok-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 12px 16px;
+  background: linear-gradient(90deg, rgba(0, 255, 65, 0.15), transparent);
+  border-bottom: 1px solid rgba(0, 255, 65, 0.3);
+  gap: 12px;
+}
+
+.byok-header h2 {
+  margin: 0;
+  font-size: 1rem;
+  font-weight: normal;
+  letter-spacing: 2px;
+  color: var(--cyan);
+  text-shadow: 0 0 10px var(--cyan);
+}
+
+/* Close button */
+.byok-close {
+  background: rgba(255, 76, 76, 0.2);
+  color: #ff4c4c;
+  border: 1px solid #ff4c4c;
+  width: 32px;
+  height: 32px;
+  padding: 0;
+  font-size: 1.2rem;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  font-family: 'Share Tech Mono', monospace;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+}
+
+.byok-close:hover {
+  background: rgba(255, 76, 76, 0.4);
+  box-shadow: 0 0 12px rgba(255, 76, 76, 0.5);
+}
+
+.byok-close:active {
+  transform: scale(0.95);
+}
+
+/* Content */
+.byok-content {
+  flex: 1;
+  padding: 16px;
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  overflow-y: auto;
+}
+
+/* Status section */
+.byok-status {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  padding: 12px;
+  background: rgba(255, 170, 0, 0.1);
+  border: 1px solid rgba(255, 170, 0, 0.3);
+  border-left: 3px solid #ffaa00;
+}
+
+.status-message {
+  margin: 0;
+  font-size: 0.9rem;
+  color: #ffcc00;
+  font-weight: bold;
+}
+
+.status-hint {
+  margin: 0;
+  font-size: 0.8rem;
+  color: rgba(0, 255, 65, 0.7);
+}
+
+/* Form */
+.byok-form {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+/* Form group */
+.form-group {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.form-label {
+  font-size: 0.85rem;
+  color: var(--cyan);
+  letter-spacing: 1px;
+  text-transform: uppercase;
+}
+
+/* Input wrapper with show/hide toggle */
+.input-wrapper {
+  display: flex;
+  gap: 4px;
+  align-items: stretch;
+}
+
+.api-key-input {
+  flex: 1;
+  padding: 8px 10px;
+  background: rgba(0, 0, 0, 0.8);
+  border: 1px solid var(--green);
+  color: var(--green);
+  font-family: 'Share Tech Mono', monospace;
+  font-size: 0.85rem;
+  outline: none;
+  transition: all 0.3s ease;
+}
+
+.api-key-input:focus {
+  border-color: var(--cyan);
+  box-shadow: 0 0 12px rgba(0, 229, 255, 0.3);
+  background: rgba(0, 20, 0, 0.9);
+}
+
+.api-key-input::placeholder {
+  color: rgba(0, 255, 65, 0.3);
+}
+
+.api-key-input:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+/* Toggle password button */
+.toggle-password-btn {
+  padding: 8px 10px;
+  background: rgba(0, 229, 255, 0.15);
+  border: 1px solid var(--cyan);
+  color: var(--cyan);
+  font-family: 'Share Tech Mono', monospace;
+  font-size: 1rem;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  flex-shrink: 0;
+}
+
+.toggle-password-btn:hover:not(:disabled) {
+  background: rgba(0, 229, 255, 0.3);
+  box-shadow: 0 0 8px var(--cyan);
+}
+
+.toggle-password-btn:active {
+  transform: scale(0.95);
+}
+
+.toggle-password-btn:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+/* Error message */
+.error-message {
+  padding: 8px 10px;
+  background: rgba(255, 76, 76, 0.15);
+  border: 1px solid rgba(255, 76, 76, 0.4);
+  border-left: 3px solid #ff4c4c;
+  color: #ff6b6b;
+  font-size: 0.85rem;
+  animation: slideDown 0.3s ease-out;
+}
+
+@keyframes slideDown {
+  from {
+    opacity: 0;
+    transform: translateY(-8px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+/* Instructions */
+.byok-instructions {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  padding: 12px;
+  background: rgba(0, 229, 255, 0.08);
+  border: 1px solid rgba(0, 229, 255, 0.2);
+  border-radius: 2px;
+}
+
+.instruction-title {
+  margin: 0;
+  font-size: 0.8rem;
+  color: var(--cyan);
+  font-weight: bold;
+  letter-spacing: 0.5px;
+}
+
+.instruction-list {
+  margin: 0;
+  padding-left: 20px;
+  font-size: 0.75rem;
+  color: rgba(0, 255, 65, 0.8);
+  line-height: 1.6;
+}
+
+.instruction-list li {
+  margin-bottom: 4px;
+}
+
+.instruction-footer {
+  margin: 0;
+  font-size: 0.7rem;
+  color: rgba(0, 255, 65, 0.5);
+  font-style: italic;
+  text-align: center;
+}
+
+/* Footer */
+.byok-footer {
+  display: flex;
+  gap: 8px;
+  padding: 12px 16px;
+  background: linear-gradient(90deg, transparent, rgba(0, 255, 65, 0.1));
+  border-top: 1px solid rgba(0, 255, 65, 0.3);
+  justify-content: flex-end;
+}
+
+/* Buttons */
+.byok-btn {
+  padding: 8px 12px;
+  font-family: 'Share Tech Mono', monospace;
+  font-size: 0.8rem;
+  font-weight: bold;
+  letter-spacing: 1px;
+  border: none;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  text-transform: uppercase;
+  min-width: 120px;
+}
+
+/* Cancel button */
+.byok-btn-cancel {
+  background: rgba(0, 229, 255, 0.15);
+  color: var(--cyan);
+  border: 1px solid var(--cyan);
+}
+
+.byok-btn-cancel:hover:not(:disabled) {
+  background: rgba(0, 229, 255, 0.3);
+  box-shadow: 0 0 12px var(--cyan);
+}
+
+.byok-btn-cancel:active {
+  transform: scale(0.98);
+}
+
+/* Authorize button */
+.byok-btn-authorize {
+  background: var(--green);
+  color: #000;
+  border: none;
+  box-shadow:
+    0 0 0 1px var(--green),
+    0 0 15px var(--green),
+    0 0 40px rgba(0, 255, 65, 0.3),
+    inset 0 0 15px rgba(255, 255, 255, 0.1);
+}
+
+.byok-btn-authorize:hover:not(:disabled) {
+  background: var(--cyan);
+  box-shadow:
+    0 0 0 1px var(--cyan),
+    0 0 15px var(--cyan),
+    0 0 40px rgba(0, 229, 255, 0.3),
+    inset 0 0 15px rgba(255, 255, 255, 0.15);
+}
+
+.byok-btn-authorize:active {
+  transform: scale(0.98);
+  box-shadow:
+    0 0 0 1px var(--green),
+    0 0 10px var(--green),
+    inset 0 0 10px rgba(0, 0, 0, 0.2);
+}
+
+.byok-btn:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+/* Pulsing animation for loading state */
+@keyframes pulse-btn {
+  0%, 100% {
+    opacity: 1;
+  }
+  50% {
+    opacity: 0.6;
+  }
+}
+
+.byok-btn-authorize:disabled {
+  animation: pulse-btn 1.5s infinite;
+}
+
+/* Scrollbar */
+.byok-content::-webkit-scrollbar {
+  width: 8px;
+}
+
+.byok-content::-webkit-scrollbar-track {
+  background: rgba(0, 0, 0, 0.3);
+}
+
+.byok-content::-webkit-scrollbar-thumb {
+  background: var(--green);
+  border-radius: 4px;
+}
+
+.byok-content::-webkit-scrollbar-thumb:hover {
+  background: var(--cyan);
+  box-shadow: 0 0 8px var(--cyan);
+}
+
+/* Responsive: Tablet */
+@media (max-width: 768px) {
+  .byok-modal {
+    width: 95%;
+    max-height: 85vh;
+  }
+
+  .byok-header h2 {
+    font-size: 0.9rem;
+  }
+
+  .api-key-input,
+  .toggle-password-btn {
+    font-size: 0.8rem;
+  }
+
+  .instruction-list {
+    font-size: 0.7rem;
+  }
+
+  .byok-btn {
+    font-size: 0.75rem;
+    padding: 6px 10px;
+    min-width: 100px;
+  }
+}
+
+/* Responsive: Mobile */
+@media (max-width: 480px) {
+  .byok-overlay {
+    align-items: flex-end;
+  }
+
+  .byok-modal {
+    width: 100%;
+    max-height: 80vh;
+    border-radius: 8px 8px 0 0;
+  }
+
+  .byok-header {
+    flex-wrap: wrap;
+    gap: 8px;
+  }
+
+  .byok-header h2 {
+    flex: 1;
+    font-size: 0.85rem;
+  }
+
+  .byok-content {
+    padding: 12px;
+  }
+
+  .status-message {
+    font-size: 0.85rem;
+  }
+
+  .form-label {
+    font-size: 0.8rem;
+  }
+
+  .api-key-input {
+    font-size: 0.8rem;
+    padding: 6px 8px;
+  }
+
+  .toggle-password-btn {
+    font-size: 0.9rem;
+    padding: 6px 8px;
+  }
+
+  .instruction-title {
+    font-size: 0.75rem;
+  }
+
+  .instruction-list {
+    font-size: 0.65rem;
+  }
+
+  .instruction-footer {
+    font-size: 0.65rem;
+  }
+
+  .byok-footer {
+    flex-direction: column;
+  }
+
+  .byok-btn {
+    width: 100%;
+    font-size: 0.7rem;
+    padding: 6px 10px;
+    min-width: unset;
+  }
+}

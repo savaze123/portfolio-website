@@ -5,6 +5,9 @@ from dotenv import load_dotenv
 from flask import Flask, jsonify, redirect, request, session, send_from_directory
 from flask_cors import CORS
 from flask_session import Session
+from flask_limiter import Limiter
+from flask_limiter.util import get_remote_address
+from upstash_redis import Redis
 
 load_dotenv()
 
@@ -38,6 +41,27 @@ Session(app)
 
 # Enable CORS
 CORS(app, resources={r"/*": {"origins": ["http://localhost:3000", "http://127.0.0.1:3000"]}}, supports_credentials=True)
+
+# Configure Flask-Limiter with Upstash Redis backend
+UPSTASH_REDIS_URL = os.getenv("UPSTASH_REDIS_URL")
+UPSTASH_REDIS_TOKEN = os.getenv("UPSTASH_REDIS_TOKEN")
+
+if UPSTASH_REDIS_URL and UPSTASH_REDIS_TOKEN:
+    # Use Upstash Redis for distributed rate limiting
+    redis_client = Redis(url=UPSTASH_REDIS_URL, token=UPSTASH_REDIS_TOKEN)
+    limiter = Limiter(
+        app=app,
+        key_func=get_remote_address,
+        storage_uri=UPSTASH_REDIS_URL,
+        storage_options={"token": UPSTASH_REDIS_TOKEN}
+    )
+else:
+    # Fallback to memory-based limiter for local development
+    limiter = Limiter(
+        app=app,
+        key_func=get_remote_address,
+        default_limits=["200 per day", "50 per hour"]
+    )
 
 # Discord API credentials
 DISCORD_CLIENT_ID = os.getenv("DISCORD_CLIENT_ID")
@@ -326,6 +350,12 @@ def check_auth():
     """Check if the user is authenticated."""
     access_token = session.get("access_token")
     return jsonify({"authenticated": access_token is not None})
+
+
+# Register AI Blueprint (Sentinel-Debug)
+from ai_routes import ai_bp, init_rate_limiter
+init_rate_limiter(limiter)
+app.register_blueprint(ai_bp)
 
 
 if __name__ == "__main__":

@@ -1,0 +1,527 @@
+/* ═══════════════════════════════════════════════════════════════
+   AIDebugger Container — Main Sentinel-Debug Interface
+   ═══════════════════════════════════════════════════════════════ */
+
+.debugger-container {
+  display: flex;
+  flex-direction: column;
+  width: 100%;
+  min-height: 100vh;
+  background: linear-gradient(135deg, rgba(0, 8, 0, 0.98), rgba(0, 15, 10, 0.98));
+  color: var(--green);
+  font-family: 'Share Tech Mono', monospace;
+  overflow: hidden;
+}
+
+/* Header */
+.debugger-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 16px 20px;
+  background: linear-gradient(90deg, rgba(0, 255, 65, 0.15), transparent);
+  border-bottom: 2px solid var(--green);
+  box-shadow: 0 0 20px rgba(0, 255, 65, 0.1);
+  gap: 16px;
+}
+
+.header-content {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.debugger-header h1 {
+  margin: 0;
+  font-size: 1.4rem;
+  font-weight: normal;
+  letter-spacing: 3px;
+  color: var(--cyan);
+  text-shadow: 0 0 15px var(--cyan);
+}
+
+.header-subtitle {
+  margin: 0;
+  font-size: 0.8rem;
+  color: rgba(0, 255, 65, 0.6);
+  letter-spacing: 1px;
+}
+
+/* Back to Resume Button */
+.back-to-resume-btn {
+  padding: 8px 16px;
+  background: rgba(0, 229, 255, 0.15);
+  border: 1px solid var(--cyan);
+  color: var(--cyan);
+  font-family: 'Share Tech Mono', monospace;
+  font-size: 0.85rem;
+  font-weight: bold;
+  cursor: pointer;
+  letter-spacing: 1px;
+  transition: all 0.3s ease;
+  flex-shrink: 0;
+}
+
+.back-to-resume-btn:hover {
+  background: rgba(0, 229, 255, 0.3);
+  box-shadow: 0 0 15px var(--cyan);
+}
+
+.back-to-resume-btn:active {
+  transform: scale(0.98);
+}
+
+/* Main Layout Grid */
+.debugger-layout {
+  display: grid;
+  grid-template-columns: 280px 1fr 280px;
+  gap: 12px;
+  flex: 1;
+  padding: 12px;
+  overflow: hidden;
+}
+
+/* Left Column: Terminal Log */
+.debugger-column-left {
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+  min-width: 0;
+}
+
+/* Center Column: Input and Analysis */
+.debugger-column-center {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  overflow-y: auto;
+  min-width: 0;
+  padding-right: 8px;
+}
+
+.debugger-column-center::-webkit-scrollbar {
+  width: 8px;
+}
+
+.debugger-column-center::-webkit-scrollbar-track {
+  background: rgba(0, 0, 0, 0.3);
+}
+
+.debugger-column-center::-webkit-scrollbar-thumb {
+  background: var(--green);
+  border-radius: 4px;
+}
+
+.debugger-column-center::-webkit-scrollbar-thumb:hover {
+  background: var(--cyan);
+}
+
+/* Right Column: Context Bar */
+.debugger-column-right {
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+  min-width: 0;
+}
+
+/* Input Section */
+.input-section {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  background: rgba(0, 8, 0, 0.95);
+  border: 1px solid var(--green);
+  box-shadow:
+    0 0 0 1px rgba(0, 255, 65, 0.1) inset,
+    0 0 20px var(--green-glow),
+    0 0 60px rgba(0, 255, 65, 0.08);
+  position: relative;
+  overflow: hidden;
+}
+
+/* Corner brackets for input section */
+.input-section::before,
+.input-section::after {
+  content: '';
+  position: absolute;
+  width: 14px;
+  height: 14px;
+  border-color: var(--green);
+  border-style: solid;
+  pointer-events: none;
+}
+
+.input-section::before {
+  top: -1px;
+  left: -1px;
+  border-width: 2px 0 0 2px;
+}
+
+.input-section::after {
+  bottom: -1px;
+  right: -1px;
+  border-width: 0 2px 2px 0;
+}
+
+.input-section-header {
+  padding: 8px 12px;
+  background: linear-gradient(90deg, rgba(0, 255, 65, 0.1), transparent);
+  border-bottom: 1px solid rgba(0, 255, 65, 0.3);
+}
+
+.input-section-header h3 {
+  margin: 0;
+  font-size: 0.9rem;
+  letter-spacing: 2px;
+  color: var(--cyan);
+  text-shadow: 0 0 10px var(--cyan);
+}
+
+.input-form {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  padding: 12px;
+}
+
+/* Form Group */
+.form-group {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.form-label {
+  font-size: 0.8rem;
+  color: var(--cyan);
+  letter-spacing: 1px;
+  text-transform: uppercase;
+}
+
+/* Form Input */
+.form-input,
+.form-textarea {
+  padding: 8px 10px;
+  background: rgba(0, 0, 0, 0.8);
+  border: 1px solid var(--green);
+  color: var(--green);
+  font-family: 'Share Tech Mono', monospace;
+  font-size: 0.85rem;
+  outline: none;
+  transition: all 0.3s ease;
+  resize: vertical;
+}
+
+.form-input:focus,
+.form-textarea:focus {
+  border-color: var(--cyan);
+  box-shadow: 0 0 12px rgba(0, 229, 255, 0.3);
+  background: rgba(0, 20, 0, 0.9);
+}
+
+.form-input::placeholder,
+.form-textarea::placeholder {
+  color: rgba(0, 255, 65, 0.3);
+}
+
+.form-input:disabled,
+.form-textarea:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+/* Error Message */
+.error-message {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 8px 10px;
+  background: rgba(255, 76, 76, 0.15);
+  border: 1px solid rgba(255, 76, 76, 0.4);
+  border-left: 3px solid #ff4c4c;
+  color: #ff6b6b;
+  font-size: 0.8rem;
+  animation: slideDown 0.3s ease-out;
+}
+
+@keyframes slideDown {
+  from {
+    opacity: 0;
+    transform: translateY(-8px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+/* Submit Button */
+.submit-btn {
+  padding: 10px 12px;
+  background: var(--green);
+  color: #000;
+  border: none;
+  font-family: 'Share Tech Mono', monospace;
+  font-size: 0.85rem;
+  font-weight: bold;
+  letter-spacing: 1px;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  text-transform: uppercase;
+  box-shadow:
+    0 0 0 1px var(--green),
+    0 0 15px var(--green),
+    0 0 40px rgba(0, 255, 65, 0.3),
+    inset 0 0 15px rgba(255, 255, 255, 0.1);
+}
+
+.submit-btn:hover:not(:disabled) {
+  background: var(--cyan);
+  box-shadow:
+    0 0 0 1px var(--cyan),
+    0 0 15px var(--cyan),
+    0 0 40px rgba(0, 229, 255, 0.3),
+    inset 0 0 15px rgba(255, 255, 255, 0.15);
+}
+
+.submit-btn:active:not(:disabled) {
+  transform: scale(0.98);
+}
+
+.submit-btn:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.submit-btn.loading {
+  animation: pulse-button 1.5s infinite;
+}
+
+@keyframes pulse-button {
+  0%, 100% {
+    opacity: 1;
+  }
+  50% {
+    opacity: 0.6;
+  }
+}
+
+/* Approval Section */
+.approval-section {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.approval-section-header {
+  padding: 8px 12px;
+  background: linear-gradient(90deg, rgba(0, 255, 65, 0.1), transparent);
+  border-bottom: 1px solid rgba(0, 255, 65, 0.3);
+}
+
+.approval-section-header h3 {
+  margin: 0;
+  font-size: 0.9rem;
+  letter-spacing: 2px;
+  color: var(--cyan);
+  text-shadow: 0 0 10px var(--cyan);
+}
+
+.back-btn {
+  align-self: flex-start;
+  padding: 6px 12px;
+  background: rgba(0, 229, 255, 0.15);
+  border: 1px solid var(--cyan);
+  color: var(--cyan);
+  font-family: 'Share Tech Mono', monospace;
+  font-size: 0.75rem;
+  font-weight: bold;
+  cursor: pointer;
+  letter-spacing: 1px;
+  transition: all 0.2s ease;
+}
+
+.back-btn:hover:not(:disabled) {
+  background: rgba(0, 229, 255, 0.3);
+  box-shadow: 0 0 10px var(--cyan);
+}
+
+.back-btn:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+/* Results Section */
+.results-section {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.results-section-header {
+  padding: 8px 12px;
+  background: linear-gradient(90deg, rgba(0, 255, 65, 0.1), transparent);
+  border-bottom: 1px solid rgba(0, 255, 65, 0.3);
+}
+
+.results-section-header h3 {
+  margin: 0;
+  font-size: 0.9rem;
+  letter-spacing: 2px;
+  color: var(--green);
+  text-shadow: 0 0 10px var(--green);
+}
+
+.results-footer {
+  display: flex;
+  justify-content: center;
+  padding: 8px 0;
+}
+
+.new-session-btn {
+  padding: 8px 16px;
+  background: var(--green);
+  color: #000;
+  border: none;
+  font-family: 'Share Tech Mono', monospace;
+  font-size: 0.8rem;
+  font-weight: bold;
+  cursor: pointer;
+  letter-spacing: 1px;
+  transition: all 0.3s ease;
+  box-shadow:
+    0 0 0 1px var(--green),
+    0 0 12px var(--green),
+    inset 0 0 15px rgba(255, 255, 255, 0.1);
+}
+
+.new-session-btn:hover {
+  background: var(--cyan);
+  box-shadow:
+    0 0 0 1px var(--cyan),
+    0 0 12px var(--cyan),
+    0 0 40px rgba(0, 229, 255, 0.3);
+}
+
+.new-session-btn:active {
+  transform: scale(0.98);
+}
+
+/* Responsive: Landscape Tablet */
+@media (max-width: 1200px) {
+  .debugger-layout {
+    grid-template-columns: 1fr;
+    gap: 8px;
+  }
+
+  .debugger-column-left,
+  .debugger-column-right {
+    max-height: 300px;
+  }
+}
+
+/* Responsive: Tablet */
+@media (max-width: 768px) {
+  .debugger-header {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 8px;
+    padding: 12px;
+  }
+
+  .debugger-header h1 {
+    font-size: 1.1rem;
+  }
+
+  .back-to-resume-btn {
+    align-self: flex-end;
+  }
+
+  .debugger-layout {
+    grid-template-columns: 1fr;
+    gap: 8px;
+    padding: 8px;
+  }
+
+  .debugger-column-left,
+  .debugger-column-right {
+    max-height: 250px;
+  }
+
+  .form-input,
+  .form-textarea {
+    font-size: 0.8rem;
+  }
+
+  .submit-btn {
+    font-size: 0.8rem;
+    padding: 8px 10px;
+  }
+}
+
+/* Responsive: Mobile */
+@media (max-width: 480px) {
+  .debugger-container {
+    min-height: 100vh;
+  }
+
+  .debugger-header {
+    padding: 10px;
+    gap: 6px;
+  }
+
+  .debugger-header h1 {
+    font-size: 1rem;
+    letter-spacing: 2px;
+  }
+
+  .header-subtitle {
+    font-size: 0.7rem;
+  }
+
+  .back-to-resume-btn {
+    padding: 6px 10px;
+    font-size: 0.75rem;
+  }
+
+  .debugger-layout {
+    grid-template-columns: 1fr;
+    gap: 6px;
+    padding: 6px;
+  }
+
+  .debugger-column-left,
+  .debugger-column-center,
+  .debugger-column-right {
+    max-height: unset;
+    overflow: visible;
+  }
+
+  .input-form {
+    gap: 10px;
+    padding: 10px;
+  }
+
+  .form-label {
+    font-size: 0.75rem;
+  }
+
+  .form-input,
+  .form-textarea {
+    font-size: 0.75rem;
+    padding: 6px 8px;
+  }
+
+  .form-textarea {
+    min-height: 100px;
+  }
+
+  .submit-btn {
+    font-size: 0.75rem;
+    padding: 8px 10px;
+  }
+
+  .error-message {
+    font-size: 0.75rem;
+  }
+}
