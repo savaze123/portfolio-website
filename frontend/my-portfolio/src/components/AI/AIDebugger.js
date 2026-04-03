@@ -33,6 +33,13 @@ function AIDebugger() {
   const [suggestedChanges, setSuggestedChanges] = useState([]);
   const [surgeonError, setSurgeonError] = useState('');
   
+  // Line ranges state (NEW)
+  const [lineRanges, setLineRanges] = useState({});
+  
+  // Terminal input for handling large files (NEW)
+  const [awaitingUserInput, setAwaitingUserInput] = useState(false);
+  const [terminalInput, setTerminalInput] = useState('');
+  
   // UI state
   const [logs, setLogs] = useState([]);
   const [tokensUsed, setTokensUsed] = useState(0);
@@ -43,6 +50,7 @@ function AIDebugger() {
   // Session state
   const [chatHistory, setChatHistory] = useState([]);
   const [phase, setPhase] = useState('input'); // input, file-approval, analysis, complete
+  const [chatInputEnabled, setChatInputEnabled] = useState(false);
   const logsEndRef = useRef(null);
 
   /**
@@ -63,6 +71,180 @@ function AIDebugger() {
   const validateGithubUrl = (url) => {
     const regex = /^https:\/\/github\.com\/[a-zA-Z0-9_-]+\/[a-zA-Z0-9_.-]+$/;
     return regex.test(url);
+  };
+
+  /**
+   * Handle line range change from FileApproval
+   */
+  const handleLineRangeChange = (index, start, end) => {
+    setLineRanges({
+      ...lineRanges,
+      [index]: { line_start: start, line_end: end }
+    });
+  };
+
+  /**
+   * Handle user terminal input for file range specification
+   * Parses input like "201-332" and validates range before retry
+   */
+  const handleTerminalSubmit = async () => {
+    if (!terminalInput.trim()) {
+      addLog('[SURGEON] Please enter a valid range (e.g., 201-332)', 'WARNING');
+      return;
+    }
+
+    // Parse user input: supports "201-332" or "201 - 332" or "201to332"
+    const trimmed = terminalInput.trim();
+    const rangeParts = trimmed.split(/[-–to]+/).map((s) => parseInt(s.trim()));
+    
+    if (rangeParts.length !== 2 || isNaN(rangeParts[0]) || isNaN(rangeParts[1])) {
+      addLog('[SURGEON] Invalid format. Use: START-END (e.g., 201-332)', 'ERROR');
+      return;
+    }
+
+    let [lineStart, lineEnd] = rangeParts;
+    
+    // Swap if user entered backwards
+    if (lineStart > lineEnd) {
+      [lineStart, lineEnd] = [lineEnd, lineStart];
+    }
+
+    const linesDiff = lineEnd - lineStart + 1;
+
+    // Validate range doesn't exceed 200 lines
+    if (linesDiff > 200) {
+      addLog(
+        `[SURGEON] Range exceeds 200 lines (${linesDiff} lines total). Max 200 per request.`,
+        'ERROR'
+      );
+      return;
+    }
+
+    // Append to chat history before clearing input
+    const updatedHistory = [
+      ...chatHistory,
+      {
+        role: 'user',
+        content: `Please analyze lines ${lineStart}-${lineEnd} of the file.`,
+      },
+    ];
+    setChatHistory(updatedHistory);
+
+    addLog(`[SURGEON] Processing range ${lineStart}-${lineEnd}...`, 'SYS');
+
+    // ✅ FIX: Clear input IMMEDIATELY after validation
+    setTerminalInput('');
+    setAwaitingUserInput(false);
+
+    // Resume SURGEON phase with the validated range
+    setTimeout(() => {
+      handleSurgeonPhaseWithRetry(lineStart, lineEnd);
+    }, 300);
+  };
+
+  /**
+   * SURGEON Phase - Retry with user-specified line range
+   * Applies the range to all approved files and re-analyzes
+   */
+  const handleSurgeonPhaseWithRetry = async (retryLineStart, retryLineEnd) => {
+    if (approvedFiles.length === 0) {
+      addLog('No files approved', 'ERROR');
+      setAwaitingUserInput(false);
+      return;
+    }
+
+    setSurgeonLoading(true);
+    setSurgeonError('');
+
+    try {
+      // ✅ FIX: Apply retry range to ALL approved files
+      const filesWithRetryRange = approvedFiles.map((file) => ({
+        ...file,
+        line_start: retryLineStart,
+        line_end: retryLineEnd,
+      }));
+
+      // Log the retry attempt
+      addLog(
+        `[SURGEON] Retrying with range ${retryLineStart}-${retryLineEnd}...`,
+        'SYS'
+      );
+      filesWithRetryRange.forEach((file) => {
+        addLog(
+          `[SURGEON] ${file.path}: Lines ${file.line_start}-${file.line_end}`,
+          'SYS'
+        );
+      });
+
+      // Make API call with corrected ranges
+      const analysisResponse = await axios.post('/api/ai/analyze', {
+        github_url: githubUrl,
+        problem: problemDescription,
+        files: filesWithRetryRange,
+        chat_history: chatHistory,
+      }, {
+        withCredentials: true
+      });
+
+      const analysis = analysisResponse.data;
+      setSuggestedChanges(analysis.suggested_changes || []);
+
+      const updatedHistory = [
+        ...chatHistory,
+        {
+          role: 'assistant',
+          content: analysis.root_cause || 'Analysis complete',
+        },
+      ];
+      setChatHistory(updatedHistory);
+
+      addLog('[SURGEON] Analysis complete', 'SUCCESS');
+      if (analysis.suggested_changes && analysis.suggested_changes.length > 0) {
+        addLog(
+          `[SURGEON] Found ${analysis.suggested_changes.length} suggested change(s)`,
+          'SUCCESS'
+        );
+        setPhase('complete');
+      } else {
+        // No suggestions found - ask for clarification
+        addLog('[SURGEON] No specific issues identified in this range', 'WARNING');
+        addLog('[SURGEON] Could you provide more details about:', 'SYS');
+        addLog('  1. What error message do you see?', 'SYS');
+        addLog('  2. Does this happen every time or intermittently?', 'SYS');
+        addLog('  3. What should happen vs what actually happens?', 'SYS');
+        setAwaitingUserInput(true);
+      }
+
+      setTokensUsed(analysis.tokens_used || tokensUsed);
+
+    } catch (error) {
+      if (error.response?.status === 413) {
+        // File still too large for this range - ask for different range
+        const errorData = error.response.data;
+        addLog(
+          `[SURGEON] Range ${retryLineStart}-${retryLineEnd} still exceeds limit`,
+          'WARNING'
+        );
+        if (errorData.suggestions) {
+          addLog(
+            `[SURGEON] Suggested ranges: ${errorData.suggestions.join(', ')}`,
+            'SYS'
+          );
+        }
+        addLog('[SURGEON] Please specify a different range (max 200 lines)', 'SYS');
+        setAwaitingUserInput(true);
+      } else if (error.response?.status === 429) {
+        addLog('[SURGEON] Rate limit reached', 'ERROR');
+        addLog('[SURGEON] Use your own Gemini API key to continue', 'SYS');
+        setByokModalOpen(true);
+      } else {
+        const errorMsg = error.response?.data?.error || error.message || 'Unknown error';
+        addLog(`[SURGEON] Error: ${errorMsg}`, 'ERROR');
+        setSurgeonError(errorMsg);
+      }
+    } finally {
+      setSurgeonLoading(false);
+    }
   };
 
   /**
@@ -125,6 +307,7 @@ function AIDebugger() {
       const files = planResponse.data.suggested_files;
       setSuggestedFiles(files);
       setApprovedFiles([]);
+      setLineRanges({});  // Reset line ranges for new files
       setChatHistory([
         {
           role: 'user',
@@ -135,6 +318,7 @@ function AIDebugger() {
       addLog(`[SCOUTER] Suggested ${files.length} files for analysis`, 'SUCCESS');
       addLog(`[SCOUTER] Awaiting user approval...`, 'SYS');
       setPhase('file-approval');
+      setChatInputEnabled(true);  // ← Enable chat for follow-up questions
       setTokensUsed(planResponse.data.tokens_used || 0);
     } catch (error) {
       const errorMsg = error.response?.data?.error || error.message || 'Unknown error';
@@ -157,53 +341,44 @@ function AIDebugger() {
     setSurgeonLoading(true);
     setSurgeonError('');
     addLog('[SURGEON PHASE] Initializing...', 'SYS');
+    addLog(`[SURGEON] Fetching ${approvedFiles.length} approved files...`, 'SYS');
 
     try {
-      // Step 1: Fetch approved files
-      addLog(`[SURGEON] Fetching ${approvedFiles.length} approved files...`, 'SYS');
-      const codeBlocks = {};
+      const filesWithRanges = approvedFiles.map((file, index) => {
+        const customRange = lineRanges[index];
+        return {
+          ...file,
+          line_start: customRange?.line_start || file.line_start || 1,
+          line_end: customRange?.line_end || file.line_end || 200,
+        };
+      });
 
-      for (const file of approvedFiles) {
-        try {
-          const fileResponse = await axios.post('/api/ai/analyze', {
-            github_url: githubUrl,
-            filepath: file.path,
-            line_start: file.line_start || 1,
-            line_end: file.line_end || 200,
-            problem: problemDescription,
-            code_blocks: codeBlocks,
-            chat_history: chatHistory,
-          });
+      filesWithRanges.forEach((file) => {
+        addLog(
+          `[SURGEON] ${file.path}: Lines ${file.line_start}-${file.line_end}`,
+          'SYS'
+        );
+      });
 
-          codeBlocks[file.path] = fileResponse.data.code || '';
-          addLog(`[SURGEON] Fetched: ${file.path}`, 'SYS');
-        } catch (fileError) {
-          addLog(`[SURGEON] Failed to fetch ${file.path}`, 'WARNING');
-        }
-      }
-
-      if (Object.keys(codeBlocks).length === 0) {
-        throw new Error('Failed to fetch any file contents');
-      }
-
-      // Step 2: Run AI analysis on collected code
-      addLog('[SURGEON] Running AI analysis...', 'SYS');
       const analysisResponse = await axios.post('/api/ai/analyze', {
         github_url: githubUrl,
         problem: problemDescription,
-        code_blocks: codeBlocks,
+        files: filesWithRanges,
         chat_history: chatHistory,
+      }, {
+        withCredentials: true
       });
 
       const analysis = analysisResponse.data;
       setSuggestedChanges(analysis.suggested_changes || []);
-      
-      // Update session context
+
       const updatedHistory = [
         ...chatHistory,
         {
           role: 'user',
-          content: `Approved files: ${approvedFiles.map((f) => f.path).join(', ')}`,
+          content: `Approved files: ${filesWithRanges
+            .map((f) => `${f.path} (Lines ${f.line_start}-${f.line_end})`)
+            .join(', ')}`,
         },
         {
           role: 'assistant',
@@ -212,15 +387,28 @@ function AIDebugger() {
       ];
       setChatHistory(updatedHistory);
 
-      addLog('[SURGEON] Analysis complete', 'SUCCESS');
-      if (analysis.suggested_changes?.length > 0) {
-        addLog(`[SURGEON] Found ${analysis.suggested_changes.length} suggested change(s)`, 'SUCCESS');
+      // ✅ NEW: Check if clarification is needed
+      if (analysis.clarification_needed || (analysis.suggested_changes && analysis.suggested_changes.length === 0)) {
+        addLog('[SURGEON] Analysis requires clarification...', 'SYS');
+        if (analysis.follow_up_question) {
+          addLog(`[SURGEON] ${analysis.follow_up_question}`, 'SYS');
+          // Enable chat for user to respond
+          setChatInputEnabled(true);
+          setAwaitingUserInput(true);
+        }
+      } else {
+        addLog('[SURGEON] Analysis complete', 'SUCCESS');
+        if (analysis.suggested_changes?.length > 0) {
+          addLog(
+            `[SURGEON] Found ${analysis.suggested_changes.length} suggested change(s)`,
+            'SUCCESS'
+          );
+        }
+        setPhase('complete');
       }
 
-      setPhase('complete');
       setTokensUsed(analysis.tokens_used || tokensUsed);
 
-      // Check context threshold
       if (analysis.context_status === 'warning') {
         addLog('[CONTEXT] Memory at 80% - compression recommended', 'WARNING');
       } else if (analysis.context_status === 'critical') {
@@ -228,7 +416,17 @@ function AIDebugger() {
         setSessionStatus('critical');
       }
     } catch (error) {
-      if (error.response?.status === 429) {
+      if (error.response?.status === 413) {
+        // File too large - prompt for custom range
+        const errorData = error.response.data;
+        addLog(`[SURGEON] File too large (${errorData.total_lines} lines)`, 'WARNING');
+        addLog(`[SURGEON] Suggested ranges: ${errorData.suggestions?.join(', ')}`, 'SYS');
+        addLog(
+          `[SURGEON] Please specify a range (e.g., 1-200, 201-332)`,
+          'SYS'
+        );
+        setAwaitingUserInput(true);
+      } else if (error.response?.status === 429) {
         addLog('[SURGEON] Rate limit reached - BYOK required', 'ERROR');
         setByokModalOpen(true);
       } else {
@@ -257,6 +455,7 @@ function AIDebugger() {
     setSuggestedFiles([]);
     setApprovedFiles([]);
     setSuggestedChanges([]);
+    setLineRanges({});
     setLogs([]);
     setTokensUsed(0);
     setChatHistory([]);
@@ -374,24 +573,58 @@ function AIDebugger() {
 
           {/* File Approval */}
           {phase === 'file-approval' && (
-            <div className="approval-section">
-              <div className="approval-section-header">
-                <h3>◆ PHASE 2: FILE APPROVAL ◆</h3>
+            <>
+              {/* Back Button & File Counter Section */}
+              <div className="file-approval-header">
+                <button
+                  onClick={() => setPhase('input')}
+                  className="back-btn-top"
+                  disabled={surgeonLoading}
+                >
+                  ◀ BACK
+                </button>
+                <div className="file-counter-badge">
+                  {approvedFiles.length} files approved
+                </div>
               </div>
-              <FileApproval
-                suggestedFiles={suggestedFiles}
-                onApprovalChange={handleApprovalChange}
-                onInitiateScrape={handleSurgeonPhase}
-                isLoading={surgeonLoading}
-              />
-              <button
-                onClick={() => setPhase('input')}
-                className="back-btn"
-                disabled={surgeonLoading}
-              >
-                ◀ BACK
-              </button>
-            </div>
+
+              {/* File Approval Container */}
+              <div className="approval-section">
+                <div className="approval-section-header">
+                  <h3>◆ PHASE 2: FILE APPROVAL ◆</h3>
+                </div>
+                <FileApproval
+                  suggestedFiles={suggestedFiles}
+                  onApprovalChange={handleApprovalChange}
+                  onInitiateScrape={handleSurgeonPhase}
+                  isLoading={surgeonLoading}
+                  onLineRangeChange={handleLineRangeChange}
+                />
+              </div>
+
+              {/* Terminal Input - Below INITIATE SCRAPE */}
+              {awaitingUserInput && (
+                <div className="file-approval-input-container">
+                  <input
+                    type="text"
+                    value={terminalInput}
+                    onChange={(e) => setTerminalInput(e.target.value)}
+                    placeholder="Enter line range (e.g., 201-332)"
+                    className="file-approval-input"
+                    onKeyPress={(e) => {
+                      if (e.key === 'Enter') handleTerminalSubmit();
+                    }}
+                    autoFocus
+                  />
+                  <button
+                    onClick={handleTerminalSubmit}
+                    className="file-approval-submit-btn"
+                  >
+                    SUBMIT
+                  </button>
+                </div>
+              )}
+            </>
           )}
 
           {/* Analysis Results */}

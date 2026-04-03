@@ -1,4 +1,5 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useState, useRef } from 'react';
+import { useNavigate } from 'react-router-dom';
 import axios from 'axios';
 import { axiosExternal } from './axiosConfig';
 import './App.css';
@@ -58,6 +59,8 @@ function BitcoinTracker() {
 
 // Resume Page Component
 function ResumePage() {
+  const navigate = useNavigate();
+  const debugCanvasRef = useRef(null);
   const [resume, setResume] = useState(null);
 
   useEffect(() => {
@@ -82,6 +85,33 @@ function ResumePage() {
           projects: []
         });
       });
+  }, []);
+
+  // Matrix rain animation for Sentinel-Debug button
+  useEffect(() => {
+    const canvas = debugCanvasRef.current;
+    if (!canvas) return;
+
+    const ctx = canvas.getContext('2d');
+    const cols = Math.floor(canvas.width / 10);
+    const drops = Array.from({length: cols}, () => Math.random() * -40);
+    const chars = '01アイウエオカキクケコサシスセソタチツテトナニヌネノ$%#@';
+
+    function drawRain() {
+      ctx.fillStyle = 'rgba(0,0,0,0.18)';
+      ctx.fillRect(0, 0, canvas.width, canvas.height);
+      ctx.font = '10px monospace';
+      drops.forEach((y, i) => {
+        const ch = chars[Math.floor(Math.random() * chars.length)];
+        ctx.fillStyle = y < 2 ? '#afffbf' : '#00ff41';
+        ctx.fillText(ch, i * 10, y * 10);
+        if (y * 10 > canvas.height && Math.random() > 0.92) drops[i] = 0;
+        drops[i] += 0.5;
+      });
+    }
+
+    const interval = setInterval(drawRain, 60);
+    return () => clearInterval(interval);
   }, []);
 
   if (!resume) {
@@ -273,6 +303,29 @@ function ResumePage() {
         <div className="wrapper" style={{textAlign: 'center'}}>
           <p style={{marginBottom: '24px'}}>Connect with me on Discord to explore more:</p>
           <a href="/login" className="neon-sign">Log in with Discord</a>
+        </div>
+      </section>
+
+      {/* Sentinel-Debug-AI Button Section */}
+      <section className="container">
+        <div className="section-header">
+          <h2>AI Debugger</h2>
+          <div className="section-line"></div>
+          <span className="section-num">09</span>
+        </div>
+        <div className="wrapper" style={{textAlign: 'center', display: 'flex', justifyContent: 'center', padding: '2rem 0'}}>
+          <button className="matrix-btn sentinel-debug-btn" onClick={() => navigate('/debug')} title="Launch Sentinel-Debug AI Debugger">
+            <canvas ref={debugCanvasRef} width={240} height={50}></canvas>
+            <div className="fill"></div>
+            <div className="scanline"></div>
+            <div className="glow-line"></div>
+            <div className="corner tl"></div>
+            <div className="corner tr"></div>
+            <div className="corner bl"></div>
+            <div className="corner br"></div>
+            <span className="arrow">⚡</span>
+            <span className="label">Sentinel-Debug-AI</span>
+          </button>
         </div>
       </section>
     </div>

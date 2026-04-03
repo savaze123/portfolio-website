@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import './FileApproval.css';
 
 /**
@@ -7,17 +7,31 @@ import './FileApproval.css';
  * User can approve/remove files before triggering SURGEON phase.
  * If file removed: input field for replacement file path appears.
  * "INITIATE SCRAPE" button appears only when ≥ 1 file approved.
+ * Line range selector for files > 200 lines.
  */
 function FileApproval({
   suggestedFiles = [],
   onApprovalChange = () => {},
   onInitiateScrape = () => {},
   isLoading = false,
+  onLineRangeChange = () => {},
 }) {
-  const [approvedFiles, setApprovedFiles] = useState(
-    suggestedFiles.map((file) => ({ ...file, approved: true }))
+  // FIX: Initialize with approved: true but track properly
+  const [approvedFiles, setApprovedFiles] = useState(() =>
+    suggestedFiles.map((file, index) => ({
+      ...file,
+      approved: true,
+      id: `file-${index}`, // Add unique ID for tracking
+    }))
   );
   const [replacementInputs, setReplacementInputs] = useState({});
+  const [lineRanges, setLineRanges] = useState({});
+
+  // FIX: Call onApprovalChange immediately when component mounts
+  useEffect(() => {
+    const approved = approvedFiles.filter((f) => f.approved);
+    onApprovalChange(approved);
+  }, []); // Empty dependency - only on mount
 
   const handleToggleApproval = (index) => {
     const updated = [...approvedFiles];
@@ -31,7 +45,6 @@ function FileApproval({
     updated.splice(index, 1);
     setApprovedFiles(updated);
     onApprovalChange(updated.filter((f) => f.approved));
-    // Clear replacement input for this file
     const newReplacements = { ...replacementInputs };
     delete newReplacements[index];
     setReplacementInputs(newReplacements);
@@ -50,7 +63,6 @@ function FileApproval({
       });
       setApprovedFiles(updated);
       onApprovalChange(updated.filter((f) => f.approved));
-      // Clear replacement input
       const newReplacements = { ...replacementInputs };
       delete newReplacements[index];
       setReplacementInputs(newReplacements);
@@ -62,6 +74,33 @@ function FileApproval({
       ...replacementInputs,
       [index]: value,
     });
+  };
+
+  const handleLineRangeSelect = (index, rangeString) => {
+    const [start, end] = rangeString.split('-').map(Number);
+    setLineRanges({
+      ...lineRanges,
+      [index]: { line_start: start, line_end: end },
+    });
+    onLineRangeChange(index, start, end);
+  };
+
+  const handleCustomRangeChange = (index, field, value) => {
+    const numValue = parseInt(value) || 0;
+    const current = lineRanges[index] || {
+      line_start: approvedFiles[index]?.line_start || 1,
+      line_end: approvedFiles[index]?.line_end || 200,
+    };
+
+    if (field === 'start') {
+      const updated = { ...current, line_start: numValue };
+      setLineRanges({ ...lineRanges, [index]: updated });
+      onLineRangeChange(index, numValue, updated.line_end);
+    } else {
+      const updated = { ...current, line_end: numValue };
+      setLineRanges({ ...lineRanges, [index]: updated });
+      onLineRangeChange(index, updated.line_start, numValue);
+    }
   };
 
   const approvedCount = approvedFiles.filter((f) => f.approved).length;
@@ -95,12 +134,62 @@ function FileApproval({
                   <div className="file-info">
                     <p className="file-path">{file.path}</p>
                     <p className="file-reason">{file.reason}</p>
-                    <p className="file-lines">
-                      Lines {file.line_start}–{file.line_end}
-                    </p>
                   </div>
                 </div>
 
+                {/* Line Range Selector - MOVED HERE (within file-item) */}
+                {file.approved && file.suggested_ranges && file.suggested_ranges.length > 0 && (
+                  <div className="file-item-ranges">
+                    <div className="range-selector">
+                      <label className="range-label">📍 Line Range (max 200 lines):</label>
+                      
+                      <div className="range-controls">
+                        {/* Preset dropdown */}
+                        <select
+                          value={
+                            lineRanges[index]
+                              ? `${lineRanges[index].line_start}-${lineRanges[index].line_end}`
+                              : file.line_range || file.suggested_ranges[0] || '1-200'
+                          }
+                          onChange={(e) => handleLineRangeSelect(index, e.target.value)}
+                          className="range-select"
+                        >
+                          <option value="" disabled>
+                            Choose preset...
+                          </option>
+                          {file.suggested_ranges.map((range) => (
+                            <option key={range} value={range}>
+                              Lines {range}
+                            </option>
+                          ))}
+                        </select>
+
+                        {/* Custom inputs */}
+                        <div className="range-input-group">
+                          <input
+                            type="number"
+                            placeholder="Start"
+                            min="1"
+                            value={lineRanges[index]?.line_start || file.line_start || 1}
+                            onChange={(e) => handleCustomRangeChange(index, 'start', e.target.value)}
+                            className="custom-input"
+                          />
+                          <span className="range-separator">–</span>
+                          <input
+                            type="number"
+                            placeholder="End"
+                            min="1"
+                            value={lineRanges[index]?.line_end || file.line_end || 200}
+                            onChange={(e) => handleCustomRangeChange(index, 'end', e.target.value)}
+                            className="custom-input"
+                          />
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                )}
+
+                {/* Actions */}
                 <div className="file-item-actions">
                   {!file.approved && (
                     <div className="replacement-input-wrapper">
@@ -108,25 +197,17 @@ function FileApproval({
                         type="text"
                         placeholder="Enter replacement file path..."
                         value={replacementInputs[index] || ''}
-                        onChange={(e) =>
-                          handleReplacementInput(index, e.target.value)
-                        }
+                        onChange={(e) => handleReplacementInput(index, e.target.value)}
                         className="replacement-input"
                         onKeyPress={(e) => {
                           if (e.key === 'Enter') {
-                            handleReplaceFile(
-                              index,
-                              replacementInputs[index] || ''
-                            );
+                            handleReplaceFile(index, replacementInputs[index] || '');
                           }
                         }}
                       />
                       <button
                         onClick={() =>
-                          handleReplaceFile(
-                            index,
-                            replacementInputs[index] || ''
-                          )
+                          handleReplaceFile(index, replacementInputs[index] || '')
                         }
                         className="replacement-btn"
                         disabled={!replacementInputs[index]?.trim()}
