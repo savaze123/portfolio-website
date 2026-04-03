@@ -14,6 +14,7 @@ GITHUB_API_BASE = "https://api.github.com"
 MAX_FILES_PER_SCRAPE = 5
 MAX_LINES_PER_FILE = 200
 UNSAFE_FILE_PATTERNS = [
+    # Secrets and credentials
     r'\.env$',
     r'.*secret.*',
     r'.*config.*',
@@ -22,6 +23,34 @@ UNSAFE_FILE_PATTERNS = [
     r'\.cert$',
     r'.*password.*',
     r'\.git/.*',
+    
+    # Dependency lock files (huge, token killers)
+    r'package-lock\.json$',
+    r'yarn\.lock$',
+    r'pnpm-lock\.yaml$',
+    r'poetry\.lock$',
+    r'Pipfile\.lock$',
+    r'requirements\.txt$',
+    r'Gemfile\.lock$',
+    
+    # Minified and compiled code
+    r'.*\.min\.js$',
+    r'.*\.min\.css$',
+    r'.*\.map$',  # Source maps
+    
+    # Build and cache directories
+    r'__pycache__/.*',
+    r'node_modules/.*',
+    r'dist/.*',
+    r'build/.*',
+    r'\.next/.*',
+    r'\.nuxt/.*',
+    r'venv/.*',
+    r'env/.*',
+    
+    # Common bloat
+    r'\.DS_Store$',
+    r'\.eslintcache$',
 ]
 
 

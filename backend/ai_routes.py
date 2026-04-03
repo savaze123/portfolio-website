@@ -200,48 +200,65 @@ def run_analysis():
         }), 400
     
     print(f"[SYS]: Scraping {len(files)} approved files...")
+    print("[DEBUG] Attempting to fetch individual files:")  # ← ADD THIS
+    for file in files:
+        print(f"[DEBUG] File path: {file.get('path')}")  # ← ADD THIS
     
-    # Fetch all file contents
+    # Fetch each approved file
     code_blocks = []
-    for file_item in files:
-        filepath = file_item.get('path', '')
-        line_start = file_item.get('line_start', 1)
-        line_end = file_item.get('line_end')
+    for file_data in files:
+        result = get_file_content(
+            github_url, 
+            file_data['path'],
+            file_data.get('line_start', 1),
+            file_data.get('line_end', 200)
+        )
         
-        result = get_file_content(github_url, filepath, line_start, line_end)
-        
-        if result.get("status") != 200:
-            print(f"[ERROR]: GET {github_url}/contents/{filepath}: {result.get('status')}")
-            print(f"[DEBUG] Full result: {result}")
-            return jsonify({
-                "error": f"Failed to fetch {filepath}: {result.get('error')}"
-            }), result.get("status", 500)
-        
-        print(f"[SYS]: Scraping {filepath}: Lines {result.get('line_start')}-{result.get('line_end')}")
-        
-        code_blocks.append({
-            "path": filepath,
-            "content": wrap_code_block(result.get("content", "")),
-            "line_range": f"{result.get('line_start')}-{result.get('line_end')}"
-        })
+        if result['status'] == 200:
+            # ✅ FIX: Build proper dict for code_blocks
+            code_blocks.append({
+                'path': file_data['path'],
+                'content': result['content'],
+                'line_start': result['line_start'],
+                'line_end': result['line_end'],
+                'total_lines': result['total_lines']
+            })
+            print(f"[SYS]: Scraped {file_data['path']}: Lines {result['line_start']}-{result['line_end']}")
+        elif result['status'] == 413:
+            # File too large - return error to frontend with suggestions
+            print(f"[ERROR]: {result['error']}")
+            return jsonify(result), 413
+        else:
+            # Other errors (404, 500, etc.)
+            print(f"[WARNING]: Could not fetch {file_data['path']}: {result['error']}")
+            continue
+    
+    if not code_blocks:
+        return jsonify({
+            'error': 'No files could be fetched successfully',
+            'status': 400
+        }), 400
     
     print("[SYS]: Running AI analysis...")
     
-    # Get user key if provided (BYOK)
-    user_key = get_user_key_from_headers()
-    
-    # Run analysis
-    result = analyze_code(problem, code_blocks, chat_history, user_key=user_key)
-    
-    if result.get("status") != 200:
-        print(f"[ERROR]: {result.get('error')}")
-        return jsonify(result), result.get("status", 500)
-    
-    tokens_used = result.get("tokens_used", 0)
-    print(f"[SYS]: POST /gemini-2.5-flash: 200 OK | Tokens: {tokens_used:,}")
-    print("[SYS]: Anomaly detected. Generating repair patch...")
-    
-    return jsonify(result), 200
+    # ✅ FIX: Pass properly formatted code_blocks to analyze_code
+    analysis = analyze_code(code_blocks, problem, chat_history)
+
+    # If no suggested_changes found, ask for clarification instead of ending
+    if not analysis.get('suggested_changes') or len(analysis.get('suggested_changes', [])) == 0:
+        # Return a clarification prompt instead
+        analysis['root_cause'] = "I've reviewed the code but need clarification to pinpoint the issue."
+        analysis['clarification_needed'] = True
+        analysis['follow_up_question'] = (
+            "Could you provide more details about the issue? For example:\n"
+            "1. What specific error message do you see?\n"
+            "2. Does this happen consistently or intermittently?\n"
+            "3. What is the expected behavior vs actual behavior?"
+        )
+        if 'suggested_changes' not in analysis:
+            analysis['suggested_changes'] = []
+
+    return jsonify(analysis), 200
 
 
 @ai_bp.route('/compress', methods=['POST'])

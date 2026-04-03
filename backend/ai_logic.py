@@ -153,8 +153,8 @@ Respond in JSON format:
 
 
 def analyze_code(
-    problem: str,
     code_blocks: List[Dict],
+    problem: str,
     chat_history: Optional[List[Dict]] = None,
     user_key: Optional[str] = None
 ) -> Dict:
@@ -162,8 +162,8 @@ def analyze_code(
     Send code blocks to Gemini for root cause analysis.
     
     Args:
-        problem: Original problem description
         code_blocks: List of code blocks with path, content, line_range
+        problem: Original problem description
         chat_history: Previous conversation turns for context
         user_key: Optional user's own Gemini API key (BYOK)
         
@@ -180,18 +180,32 @@ def analyze_code(
     
     client = genai.Client(api_key=api_key)
     
-    # Build code context
-    code_context = ""
-    for i, block in enumerate(code_blocks, 1):
-        path = block.get("path", f"file_{i}")
-        content = block.get("content", "")
-        line_range = block.get("line_range", "")
-        
-        code_context += f"\n[FILE {i}] {path}"
-        if line_range:
-            code_context += f" (Lines {line_range})"
-        code_context += "\n"
-        code_context += f"[CODE_BLOCK_START]\n{content}\n[CODE_BLOCK_END]\n"
+    # Wrap code blocks properly
+    formatted_blocks = []
+    for block in code_blocks:
+        # block should already be a dict from ai_routes.py
+        if isinstance(block, str):
+            # Fallback: if somehow string is passed, create dict
+            formatted_blocks.append({
+                'path': 'unknown',
+                'content': block
+            })
+        else:
+            # Normal path: dict is already correct
+            formatted_blocks.append({
+                'path': block.get('path', 'unknown'),
+                'content': block.get('content', ''),
+                'line_start': block.get('line_start', 1),
+                'line_end': block.get('line_end', 200)
+            })
+    
+    # Build prompt with wrapped code blocks
+    code_section = "\n".join([
+        f"[CODE_BLOCK_START: {block['path']} (Lines {block.get('line_start', 1)}-{block.get('line_end', 200)})]\n"
+        f"{block['content']}\n"
+        f"[CODE_BLOCK_END: {block['path']}]"
+        for block in formatted_blocks
+    ])
     
     # Build chat history context
     history_context = ""
@@ -212,7 +226,7 @@ ORIGINAL PROBLEM:
 {history_context}
 
 CODE TO ANALYZE:
-{code_context}
+{code_section}
 
 Based on the code above, provide:
 1. Root cause analysis
